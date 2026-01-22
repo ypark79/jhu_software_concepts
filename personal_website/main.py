@@ -1,15 +1,13 @@
 # an object of WSGI application
-from flask import Flask
+from flask import Flask, render_template
 
 app = Flask(__name__)
 
 # A decorator used to tell the application
 # the URL is associated function
 @app.route('/')
-
-# A function displaying text as our "hello world base"
-def hello():
-    return "Welcome to Modern Software Concepts in Python!"
+def home():
+    return render_template('home.html')
 
 if __name__ == '__main__':
     # Run the application
