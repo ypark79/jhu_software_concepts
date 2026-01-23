@@ -7,9 +7,15 @@
 </head>
 <body>
     <nav>
-        <a href="{{ url_for('home') }}">About</a> |
-        <a href="{{ url_for('contact') }}">Contact Me</a> |
-        <a href="{{ url_for('projects') }}">Projects</a>
+        <a href="{{ url_for('home') }}"
+           class="{% if request.path == url_for('home') %}active{% endif %}">About
+        </a>
+        <a href="{{ url_for('contact') }}"
+          class="{% if request.path == url_for('contact') %}active{% endif %}">Contact Me
+        </a>
+        <a href="{{ url_for('projects') }}"
+           class="{% if request.path == url_for('projects') %}active{% endif %}">Projects
+        </a>
     </nav>
     <h1>Lieutenant Colonel Paul Park</h1>
     <h2>MSAI Student at Johns Hopkins University</h2>
