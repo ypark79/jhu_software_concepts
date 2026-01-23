@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <title>Lieutenant Colonel Paul Park</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
 </head>
 <body>
+    <nav>
+        <a href="{{ url_for('home') }}">About</a> |
+        <a href="{{ url_for('contact') }}">Contact Me</a> |
+        <a href="{{ url_for('projects') }}">Projects</a>
+    </nav>
     <h1>Lieutenant Colonel Paul Park</h1>
     <h2>MSAI Student at Johns Hopkins University</h2>
-    <img src = "{{url_for('static', filename = 'Park_Photo.jpg')}}" align = "center" style = "width: 100px;"/>
-    <p>Insert Bio Here</p>
+    <img src = "{{url_for('static', filename = 'Park_Photo.jpg')}}"/>
+    <p>I am West Point class of 2008. I graduated with a Bachelors in Nuclear Engineering and commissioned as an Infantry Officer. Started off in the 82nd and after a rotation in CENTCOM, I went the Special Forces route. Finished up the SF Qualification Course in 2013 and spent the entirety of my Special Forces career working in the INDOPACOM area of responsibility. I did all of my O-3 and O-4 SF tactical time serving forward in 1st Battalion, 1st Special Forces Group (Airborne) out of Okinawa, Japan. Over two PCS assignments in Japan, I served in all key SF billets starting from Special Forces Operational Alpha Detachment Commander, Assistant Battalion S3, Battalion XO, and Company Command. I came back CONUS between my two Oki assignments to be an Aide de Camp to the 1st Special Forces Command (Airborne) Commanding General and earned my first Masters from the Naval Postgraduate School in Monterey, CA. </p>
 </body>
 </html>

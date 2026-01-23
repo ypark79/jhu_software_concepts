@@ -1,0 +1,17 @@
+body {
+    max-width: 900px;     /* prevents the image from flying to the far edge */
+    margin: 40px auto;    /* centers the whole content block on the page */
+    font-family: Arial, sans-serif;
+}
+
+img {
+    float: right;
+    width: 150px;
+    margin-left: 20px;
+    margin-bottom: 10px;
+}
+
+p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
