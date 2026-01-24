@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>Lieutenant Colonel Paul Park</title>
+    <!-- Link the main.css file for style adjustments. This file lives in the static folder -->
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 </head>
 <body>
+    <!--Establish the navigation bar by coding the links to all webpages.
+    The color of the navigation bar and links will come from the
+    main.css file linked above. The Jinja code will webpage link color
+    highlighting behavior. This navigation bar code will exist in all
+    html files -->
     <nav>
         <a href="{{ url_for('pages.home') }}"
            class="{% if request.path == url_for('pages.home') %}active{% endif %}">About Me
@@ -19,6 +25,7 @@
     </nav>
     <h1>Lieutenant Colonel Paul Park</h1>
     <h2>MSAI Student at Johns Hopkins University</h2>
+    <!--Link the bio photo, which lives in the static folder-->
     <img src = "{{url_for('static', filename = 'Park_Photo.jpg')}}"/>
     <p>My name is Paul Park and I am an active duty Army Special Forces
     Officer. I am from Riverside, CA and graduated from the United

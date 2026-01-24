@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Projects</title>
+    <!--Link the main.css file for style adjustments-->
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 </head>
 <body>
+    <!--Same navigation code as the home.html page-->
     <nav>
         <a href="{{ url_for('pages.home') }}"
            class="{% if request.path == url_for('pages.home') %}active{% endif %}">About
@@ -27,6 +29,7 @@
             which includes information about this current project and
             future ones. </p>
     <h4>
+            <!--This code establishes a hyperlink to my GitHub repo-->
             <a href="https://github.com/ypark79/jhu_software_concepts" target="_blank">
             Link to my Module 1 Project GitHub</a>
     </h4>
