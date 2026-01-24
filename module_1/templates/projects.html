@@ -7,14 +7,14 @@
 </head>
 <body>
     <nav>
-        <a href="{{ url_for('home') }}"
-           class="{% if request.path == url_for('home') %}active{% endif %}">About
+        <a href="{{ url_for('pages.home') }}"
+           class="{% if request.path == url_for('pages.home') %}active{% endif %}">About
         </a>
-        <a href="{{ url_for('contact') }}"
-          class="{% if request.path == url_for('contact') %}active{% endif %}">Contact Me
+        <a href="{{ url_for('pages.contact') }}"
+          class="{% if request.path == url_for('pages.contact') %}active{% endif %}">Contact Me
         </a>
-        <a href="{{ url_for('projects') }}"
-           class="{% if request.path == url_for('projects') %}active{% endif %}">Projects
+        <a href="{{ url_for('pages.projects') }}"
+           class="{% if request.path == url_for('pages.projects') %}active{% endif %}">Projects
         </a>
     </nav>
     <h1>Projects</h1>
