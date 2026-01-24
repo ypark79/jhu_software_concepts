@@ -1,6 +1,7 @@
 from flask import Flask
-from pages.routes import pages_bp
+from pages.pages import bp
 
-app = Flask(__name__)
-
-app.register_blueprint(pages_bp)
+def create_app():
+    app = Flask(__name__)
+    app.register_blueprint(bp)
+    return app
