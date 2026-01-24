@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lieutenant Colonel Paul Park</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('home') }}"
+           class="{% if request.path == url_for('home') %}active{% endif %}">About
+        </a>
+        <a href="{{ url_for('contact') }}"
+          class="{% if request.path == url_for('contact') %}active{% endif %}">Contact Me
+        </a>
+        <a href="{{ url_for('projects') }}"
+           class="{% if request.path == url_for('projects') %}active{% endif %}">Projects
+        </a>
+    </nav>
+    <h1>Lieutenant Colonel Paul Park</h1>
+    <h2>MSAI Student at Johns Hopkins University</h2>
+    <img src = "{{url_for('static', filename = 'Park_Photo.jpg')}}"/>
+    <p>My name is Paul Park and I am an active duty Army Special Forces
+    Officer. I am from Riverside, CA and graduated from the United
+    States Military Academy at West Point in 2008 with a Bachelors Degree
+    in Nuclear Engineering. My Army career started in the Infantry until
+    I transitioned to Special Forces in 2013. I am currently assigned to
+    Special Operations Command, Pacific in Camp H.M. Smith, O'ahu, Hawai'i.
+    I am currently working towards a Master of Science in Artificial
+    Intelligence at Johns Hopkins University.</p>
+</body>
+</html>
