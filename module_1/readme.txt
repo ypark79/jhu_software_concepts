@@ -4,6 +4,8 @@ Modern Software Concepts in Python
 
 Module Info: Module 1 Assignment: Personal Website 
 
+SSH URL to GitHub Repo: git@github.com:ypark79/jhu_software_concepts.git
+
 Approach: 
 
 Overview: I used PyCharm as any IDE and Python version 3.13.7 for this assignment. The initial website structure consisted of main.py, a templates folder that housed the html webpages, and a static folder that housed the biography photo. The main.py file imported the flask class and the templates, initiated the flask object (app), and contained all the routes to the html pages. Next step was to create a run.py file in order to  start the web application using the command $python run.py as per the assignment instructions. After the html webpages were completed as per the assignment instructions, a css file was created in the static folder and linked to all the webpages to add style edits. A single css file (main.css) was linked to all webpages. Lastly, a pages folder was created and a pages.py file was created within it to integrate a blueprint into the website infrastructure. The pages.py file houses the routes and templates for the webpage. Once the pages.py was created, the main.py and html pages were updated to properly link the blueprints to all the webpages. 
