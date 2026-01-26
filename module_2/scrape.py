@@ -7,24 +7,21 @@ url = "https://www.thegradcafe.com/survey/"
 
 http_response = http.request('GET', url)
 
-html_conversion = http_response.data.decode('utf-8')
+html_text = http_response.data.decode('utf-8')
 
 with open('website_html.html', 'w', encoding='utf-8') as f:
-    f.write(html_conversion))
+    f.write(html_text)
 
-soup = BeautifulSoup(html_conversion, 'html.parser')
+soup = BeautifulSoup(html_text, 'html.parser')
 
-rows = soup.find_all('tr')
-data_rows = []
-for r in rows:
-    if r.find('td') is not None:
-        data_rows.append(r)
+tr_rows = soup.find_all('tr')
+tr_td_rows = []
+for line in tr_rows:
+    td_cells = line.find_all('td')
+    if len(td_cells) > 0:
+        tr_td_rows.append(line)
 
-singe_row = data_rows[0]
-cells = singe_row.find_all('td')
-
-print(cells)
-
+print(tr_td_rows[0])
 
 
 
