@@ -9,6 +9,9 @@ http_response = http.request('GET', url)
 
 html_conversion = http_response.data.decode('utf-8')
 
+with open('website_html.html', 'w', encoding='utf-8') as f:
+    f.write(html_conversion))
+
 soup = BeautifulSoup(html_conversion, 'html.parser')
 
 rows = soup.find_all('tr')
