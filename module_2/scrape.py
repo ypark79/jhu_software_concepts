@@ -27,7 +27,22 @@ for tr_td in tr_td_cells:
 
     td_data = []
     for td in cells:
-        td_data.append(td.get_text(' ').strip())
-    extracted_fields.append(td_data)
-print(extracted_fields[0])
+        text = td.get_text(' ')
+        text = text.strip()
+        td_data.append(text)
 
+    link_tag = tr_td.find('a')
+    full_url = None
+    if link_tag is not None:
+        url_link = link_tag.get('href')
+        full_url = 'https://www.thegradcafe.com' + url_link
+    td_data.append(full_url)
+
+    extracted_fields.append(td_data)
+
+for i in extracted_fields:
+    university = i[0]
+    program = i[1]
+    llm_input = program + ',' + university
+
+print(extracted_fields[0])
