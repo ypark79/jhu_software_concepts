@@ -14,19 +14,20 @@ with open('website_html.html', 'w', encoding='utf-8') as f:
 
 soup = BeautifulSoup(html_text, 'html.parser')
 
-tr_rows = soup.find_all('tr')
-tr_td_rows = []
-for line in tr_rows:
-    td_cells = line.find_all('td')
+tr_cells = soup.find_all('tr')
+tr_td_cells = []
+for row in tr_cells:
+    td_cells = row.find_all('td')
     if len(td_cells) > 0:
-        tr_td_rows.append(line)
+        tr_td_cells.append(row)
 
-print(tr_td_rows[0])
+extracted_fields = []
+for tr_td in tr_td_cells:
+    cells = tr_td.find_all('td')
 
-
-
-
-
-
-
+    td_data = []
+    for td in cells:
+        td_data.append(td.get_text(' ').strip())
+    extracted_fields.append(td_data)
+print(extracted_fields[0])
 
