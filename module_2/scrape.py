@@ -40,9 +40,15 @@ for tr_td in tr_td_cells:
 
     extracted_fields.append(td_data)
 
+inputs_for_llm = []
 for i in extracted_fields:
     university = i[0]
     program = i[1]
-    llm_input = program + ',' + university
+    llm_input = program + ', ' + university
+
+    input_dict = {}
+    input_dict['program'] = llm_input
+
+    inputs_for_llm.append(input_dict)
 
 print(extracted_fields[0])
