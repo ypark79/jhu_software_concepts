@@ -5,11 +5,19 @@ from bs4 import BeautifulSoup
 url = "https://www.thegradcafe.com/survey/"
 
 # Request the html from the website and convert it to html.
-get_request = Request(url, headers={'User-Agent': 'Mozilla/5.0'}, method='GET')
+def download_html(url):
+    get_request = Request(url, headers={'User-Agent': 'Mozilla/5.0'}, method='GET')
+    response = urlopen(get_request)
+    html_text = response.read().decode("utf-8")
+    return html_text
 
-response = urlopen(get_request)
-html_text = response.read().decode("utf-8")
+def extract_text(html_text):
+    soup = BeautifulSoup(html_text, 'html.parser')
+    text = soup.get_text(' ')
+    text = text.strip()
+    return text
 
+html_text = download_html(url)
 # Write the html to a file in order to analyze it to find target tags
 # that contain the desired information.
 with open('website_html.html', 'w', encoding='utf-8') as f:
@@ -40,6 +48,7 @@ for tr_td in tr_td_cells:
         text = td.get_text(' ')
         text = text.strip()
         td_data.append(text)
+
     # The <tr>/<td> extraction does not extract the ULR links to the
     # students' applications inside <a href>. Search for all <a> tags
     # and then isolate all <a> tags with href in it.
@@ -52,45 +61,59 @@ for tr_td in tr_td_cells:
 
     extracted_fields.append(td_data)
 
-# The provided llm expects json dictionaries as "program, university."
-# Extract the university and program fields and format as a dictionary.
-# Consolidate all dictionaries in a list to prepare the data to be sent
-# to the provided llm.
-inputs_for_llm = []
-for i in extracted_fields:
-    university = i[0]
-    program = i[1]
-    # Need to account for if a university or a program is not provided
-    if university is None:
-        university = ''
-    if program is None:
-        program = ''
-    llm_input = program + ', ' + university
+extracted_fields_raw = []
+for row in extracted_fields:
+    row_dict = {}
 
-    input_dict = {}
-    input_dict['program'] = llm_input
+    # University
+    if len(row) > 0:
+        row_dict['university_raw'] = row[0]
+    else:
+        row_dict['university_raw'] = None
 
-    inputs_for_llm.append(input_dict)
+    # Program
+    if len(row) > 1:
+        row_dict['program_raw'] = row[1]
+    else:
+        row_dict['program_raw'] = None
 
-# The provided llm expects the inputs to be in a json dictionary with
-# key: "rows" and the values being the list of dictionaries extracted
-# from the data scraping code above.
-payload = {}
-payload['rows'] = inputs_for_llm
+    # Data data added to website
+    if len(row) > 2:
+        row_dict['date_added_raw'] = row[2]
+    else:
+        row_dict['date_added_raw'] = None
 
-# Convert the scraped data into json and then into bytes before pushing
-# to the llm server.
-payload_json = json.dumps(payload)
-payload_bytes = payload_json.encode('utf-8')
+    # Decision status
+    if len(row) > 3:
+        row_dict['status_raw'] = row[3]
+    else:
+        row_dict['status_raw'] = None
 
-# Send the data to the server and establish the variable for its response.
-llm_url =  'http://127.0.0.1:8000/standardize'
-llm_request = Request(llm_url, headers={'Content-Type': 'application/json'}, method='POST', data=payload_bytes)
+    # Comments
+    if len(row) > 4:
+        row_dict['comments_raw'] = row[4]
+    else:
+        row_dict['comments_raw'] = None
 
-llm_response = urlopen(llm_request)
-llm_response_text = llm_response.read().decode('utf-8')
-llm_response_python = json.loads(llm_response_text)
+    # Application
+    if len(row) > 5:
+        row_dict['application_url_raw'] = row[5]
+    else:
+        row_dict['application_url_raw'] = None
 
-cleaned_entry = llm_response_python['rows']
-print(cleaned_entry[0])
+    extracted_fields_raw.append(row_dict)
+
+for row in extracted_fields_raw:
+    application_url = row['application_url_raw']
+    row['result_text_raw'] = None
+    if application_url is not None:
+        result_html = download_html(application_url)
+        result_text = extract_text(result_html)
+        row['result_text_raw'] = result_text
+
+with open("raw.json", "w", encoding="utf-8") as f:
+    json.dump(extracted_fields_raw, f)
+
+print(extracted_fields_raw[0])
+
 
