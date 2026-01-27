@@ -1,15 +1,14 @@
-import urllib3
+from urllib.request import urlopen, Request
 import json
 from bs4 import BeautifulSoup
-
-# Use urllib3 to make the connection to the website.
-http = urllib3.PoolManager()
 
 url = "https://www.thegradcafe.com/survey/"
 
 # Request the html from the website and convert it to html.
-http_response = http.request('GET', url)
-html_text = http_response.data.decode('utf-8')
+get_request = Request(url, headers={'User-Agent': 'Mozilla/5.0'}, method='GET')
+
+response = urlopen(get_request)
+html_text = response.read().decode("utf-8")
 
 # Write the html to a file in order to analyze it to find target tags
 # that contain the desired information.
@@ -85,10 +84,11 @@ payload_json = json.dumps(payload)
 payload_bytes = payload_json.encode('utf-8')
 
 # Send the data to the server and establish the variable for its response.
-llm_response = http.request('POST', 'http://127.0.0.1:8000/standardize', body=payload_bytes, headers={'Content-Type': 'application/json'})
+llm_url =  'http://127.0.0.1:8000/standardize'
+llm_request = Request(llm_url, headers={'Content-Type': 'application/json'}, method='POST', data=payload_bytes)
 
-# Convert the llm's response into text and then into python.
-llm_response_text = llm_response.data.decode('utf-8')
+llm_response = urlopen(llm_request)
+llm_response_text = llm_response.read().decode('utf-8')
 llm_response_python = json.loads(llm_response_text)
 
 cleaned_entry = llm_response_python['rows']
