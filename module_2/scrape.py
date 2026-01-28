@@ -112,7 +112,7 @@ for row in extracted_fields_raw:
         row['result_text_raw'] = result_text
 
 with open("raw.json", "w", encoding="utf-8") as f:
-    json.dump(extracted_fields_raw, f)
+    json.dump(extracted_fields_raw, f, ensure_ascii=False, indent=2)
 
 print(extracted_fields_raw[0])
 
