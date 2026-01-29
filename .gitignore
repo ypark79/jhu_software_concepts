@@ -1,28 +1,23 @@
+# OS junk
+.DS_Store
+
+# IDE
+.idea/
+
 # Python
 __pycache__/
 *.pyc
 *.pyo
-
-# Virtual environments
 .venv/
-venv/
 
-# Local LLM hosting (models + caches only)
-module_2/llm_hosting/models/
-module_2/llm_hosting/model_cache/
+# LLM hosting (DO NOT COMMIT)
+module_2/llm_hosting/
+models/
+model_cache/
 
-# LLM model files
-*.bin
-*.safetensors
-*.gguf
-*.pt
-
-# Data outputs
+# Outputs
 *.json
 clean.json
 applicant_data.json
 applicant_data_checkpoint.json
 llm_extend_applicant_data.json
-
-# OS junk
-.DS_Store.idea/
