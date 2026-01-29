@@ -4,29 +4,43 @@ import json
 from bs4 import BeautifulSoup
 import time
 
-url = "https://www.thegradcafe.com/survey/"
+BASE_DOMAIN = "https://www.thegradcafe.com"
+BASE_SURVEY_URL = f"{BASE_DOMAIN}/survey"
 
-# Request the html from the website and convert it to html.
-def download_html(url):
-    get_request = Request(url, headers={'User-Agent': 'Mozilla/5.0'}, method='GET')
+# ------------------------ Networking ------------------------
 
-    for attempt in range(5):  # retry up to 5 times
+def _make_request(url: str, accept: str = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8") -> Request:
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": accept,
+        "Accept-Language": "en-US,en;q=0.9",
+        "Connection": "keep-alive",
+        "Referer": f"{BASE_DOMAIN}/survey/",
+    }
+    return Request(url, headers=headers, method="GET")
+
+
+def download_html(url: str) -> str:
+    req = _make_request(url)
+
+    for attempt in range(5):
         try:
-            response = urlopen(get_request, timeout=60)
-            html_text = response.read().decode("utf-8")
-            return html_text
+            resp = urlopen(req, timeout=60)
+            return resp.read().decode("utf-8", errors="replace")
 
         except HTTPError as e:
-            # Retry on transient server errors (500–599)
             if 500 <= e.code < 600:
                 wait = 2 ** attempt
                 print(f"HTTP {e.code} for {url}. Retrying in {wait}s...")
                 time.sleep(wait)
                 continue
-            raise  # non-5xx errors should still stop you (403, 404, etc.)
+            raise
 
         except URLError as e:
-            # Network hiccup; retry
             wait = 2 ** attempt
             print(f"Network error for {url}: {e}. Retrying in {wait}s...")
             time.sleep(wait)
@@ -34,137 +48,146 @@ def download_html(url):
 
     raise RuntimeError(f"Failed to download after retries: {url}")
 
-def extract_text(html_text):
-    soup = BeautifulSoup(html_text, 'html.parser')
-    text = soup.get_text(' ')
-    text = text.strip()
-    return text
 
-def scrape_data():
-    html_text = download_html(url)
+# ------------------------ Parsing helpers ------------------------
 
-    # Create a BeautifulSoup object to parse through the extracted html from
-    # the website.
-    soup = BeautifulSoup(html_text, 'html.parser')
+def extract_text(html_text: str) -> str:
+    soup = BeautifulSoup(html_text, "html.parser")
+    return soup.get_text(" ").strip()
 
-    # Isolate all the info inside <tr> tags. Then isolate all the data within
-    # that is inside <td> tags.
-    tr_cells = soup.find_all('tr')
-    tr_td_cells = []
-    for row in tr_cells:
-        td_cells = row.find_all('td')
-        # Account for rows that do not have desired data.
-        if len(td_cells) > 0:
-            tr_td_cells.append(row)
 
-    # Extract the text within the <td> tags. Strip out the newlines to
-    # isolate just the desired fields.
-    extracted_fields = []
-    for tr_td in tr_td_cells:
-        cells = tr_td.find_all('td')
+def _extract_tr_rows_from_html(html_text: str) -> list:
+    soup = BeautifulSoup(html_text, "html.parser")
+    rows = []
+    for tr in soup.find_all("tr"):
+        if len(tr.find_all("td")) > 0:
+            rows.append(tr)
+    return rows
 
-        td_data = []
-        for td in cells:
-            text = td.get_text(' ')
-            text = text.strip()
-            td_data.append(text)
 
-        # The <tr>/<td> extraction does not extract the ULR links to the
-        # students' applications inside <a href>. Search for all <a> tags
-        # and then isolate all <a> tags with href in it.
-        link_tag = tr_td.find('a')
-        full_url = None
-        if link_tag is not None:
-            url_link = link_tag.get('href')
-            if url_link:
-                full_url = 'https://www.thegradcafe.com' + url_link
-        td_data.append(full_url)
+def _row_dict_from_tr(tr) -> dict:
+    cells = tr.find_all("td")
+    td_data = []
+    for td in cells:
+        td_data.append(td.get_text(" ").strip())
 
-        extracted_fields.append(td_data)
+    link_tag = tr.find("a", href=lambda h: h and "/result/" in h)
+    full_url = None
+    if link_tag:
+        href = link_tag.get("href")
+        if href:
+            full_url = href if href.startswith("http") else (BASE_DOMAIN + href)
 
-    extracted_fields_raw = []
-    for row in extracted_fields:
-        row_dict = {}
+    return {
+        "university_raw": td_data[0] if len(td_data) > 0 else None,
+        "program_raw": td_data[1] if len(td_data) > 1 else None,
+        "date_added_raw": td_data[2] if len(td_data) > 2 else None,
+        "status_raw": td_data[3] if len(td_data) > 3 else None,
+        "comments_raw": td_data[4] if len(td_data) > 4 else None,
+        "application_url_raw": full_url,
+        "result_text_raw": None,
+    }
 
-        # University
-        if len(row) > 0:
-            row_dict['university_raw'] = row[0]
-        else:
-            row_dict['university_raw'] = None
 
-        # Program
-        if len(row) > 1:
-            row_dict['program_raw'] = row[1]
-        else:
-            row_dict['program_raw'] = None
+# ------------------------ Main scraper ------------------------
 
-        # Data data added to website
-        if len(row) > 2:
-            row_dict['date_added_raw'] = row[2]
-        else:
-            row_dict['date_added_raw'] = None
+def scrape_data(page_url: str, page_num: int) -> list[dict]:
+    html_text = download_html(page_url)
 
-        # Decision status
-        if len(row) > 3:
-            row_dict['status_raw'] = row[3]
-        else:
-            row_dict['status_raw'] = None
+    tr_rows = _extract_tr_rows_from_html(html_text)
 
-        # Comments
-        if len(row) > 4:
-            row_dict['comments_raw'] = row[4]
-        else:
-            row_dict['comments_raw'] = None
+    if not tr_rows:
+        return []
 
-        # Application
-        if len(row) > 5:
-            row_dict['application_url_raw'] = row[5]
-        else:
-            row_dict['application_url_raw'] = None
+    extracted = []
+    for tr in tr_rows:
+        row = _row_dict_from_tr(tr)
+        if row.get("application_url_raw") is None:
+            continue
+        extracted.append(row)
 
-        extracted_fields_raw.append(row_dict)
-
-    for row in extracted_fields_raw:
-        application_url = row['application_url_raw']
-        row['result_text_raw'] = None
-        if application_url is not None:
+    # Fetch detail page text for each /result/ entry
+    for row in extracted:
+        application_url = row.get("application_url_raw")
+        if application_url:
             try:
                 result_html = download_html(application_url)
-                result_text = extract_text(result_html)
-                row['result_text_raw'] = result_text
+                row["result_text_raw"] = extract_text(result_html)
             except Exception:
-                row['result_text_raw'] = None
-            time.sleep(0.1)
+                row["result_text_raw"] = None
 
-    return extracted_fields_raw
+            time.sleep(0.20)
 
-def save_data(data, filename):
-    with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii = False, indent=2)
+    return extracted
+
+
+def save_data(data, filename: str) -> None:
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def load_data(filename: str) -> list[dict]:
+    try:
+        with open(filename, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+    except Exception:
+        return []
+
+
+# ------------------------ Runner ------------------------
 
 if __name__ == "__main__":
-    all_rows = []
-    page = 1
-    TARGET = 30000
+    TARGET = 30000  # set to 30000 for final run
+    CHECKPOINT_FILE = "applicant_data_checkpoint.json"
+    FINAL_FILE = "applicant_data.json"
+    CHECKPOINT_EVERY_PAGES = 10
+
+    all_rows = load_data(CHECKPOINT_FILE)
+    print(f"Resuming with {len(all_rows)} entries from checkpoint.")
+
+    page = (len(all_rows) // 50) + 1 if all_rows else 1
+    empty_pages = 0
 
     while len(all_rows) < TARGET:
-        # Change the global URL that scrape_data() uses
-        if page == 1:
-            url = "https://www.thegradcafe.com/survey/"
+        page_url = f"{BASE_SURVEY_URL}/" if page == 1 else f"{BASE_SURVEY_URL}/?page={page}"
+        print("Scraping:", page_url)
+
+        try:
+            page_rows = scrape_data(page_url, page)
+        except Exception as e:
+            print(f"Page scrape failed ({page_url}): {e}. Backing off 15s...")
+            time.sleep(15)
+            page += 1
+            continue
+
+        if not page_rows:
+            empty_pages += 1
+            print(f"No usable rows on {page_url}. Backing off 10s... ({empty_pages}/5)")
+            time.sleep(10)
+
+            if empty_pages >= 5:
+                print("Too many empty pages in a row. Saving checkpoint and exiting.")
+                save_data(all_rows, CHECKPOINT_FILE)
+                break
+
+            page += 1
+            continue
         else:
-            url = f"https://www.thegradcafe.com/survey/?page={page}"
+            empty_pages = 0
 
-        print("Scraping:", url)
-
-        page_rows = scrape_data()   # <-- your existing function (unchanged)
         all_rows.extend(page_rows)
+        print("Total entries so far:", len(all_rows))
 
-        print("Total rows so far:", len(all_rows))
+        if page % CHECKPOINT_EVERY_PAGES == 0:
+            save_data(all_rows, CHECKPOINT_FILE)
+            print(f"Checkpoint saved: {CHECKPOINT_FILE}")
 
         page += 1
-        time.sleep(0.2)  # polite delay so you don't get blocked
+        time.sleep(0.75)
 
-    save_data(all_rows[:TARGET], "applicant_data.json")
-    print("Done. Saved 30,000 rows to applicant_data.json")
-
-
+    save_data(all_rows, CHECKPOINT_FILE)
+    save_data(all_rows[:TARGET], FINAL_FILE)
+    saved_n = min(len(all_rows), TARGET)
+    print(f"Done. Saved {saved_n} entries to {FINAL_FILE}")
