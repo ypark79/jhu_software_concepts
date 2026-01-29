@@ -1,6 +1,7 @@
 from urllib.request import urlopen, Request
 import json
 import re
+import time
 
 def chunked(lst, size):
     for i in range(0, len(lst), size):
@@ -215,15 +216,29 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
             data=payload_bytes
         )
 
-        llm_response = urlopen(llm_request, timeout=300)
-        llm_response_text = llm_response.read().decode('utf-8')
-        llm_response_python = json.loads(llm_response_text)
+        llm_response_python = None
+
+        for attempt in range(5):
+            try:
+                llm_response = urlopen(llm_request, timeout=300)
+                llm_response_text = llm_response.read().decode('utf-8')
+                llm_response_python = json.loads(llm_response_text)
+                break
+            except Exception as e:
+                wait = 2 ** attempt
+                print(f"LLM request failed ({e}). Retrying in {wait}s...")
+                time.sleep(wait)
+
+        if llm_response_python is None:
+            raise RuntimeError("LLM batch failed after retries")
 
         batch_cleaned = llm_response_python.get('rows')
         if batch_cleaned is None:
             raise RuntimeError(f"LLM response missing 'rows': {llm_response_python}")
 
         llm_cleaned.extend(batch_cleaned)
+
+        print(f"Progress: {len(llm_cleaned)} / {len(inputs_for_llm)}")
 
     for i in range(len(extracted_fields_raw)):
         extracted_fields_raw[i]['program_clean'] = llm_cleaned[i].get('llm-generated-program')

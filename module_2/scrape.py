@@ -1,4 +1,5 @@
 from urllib.request import urlopen, Request
+from urllib.error import HTTPError, URLError
 import json
 from bs4 import BeautifulSoup
 import time
@@ -8,9 +9,30 @@ url = "https://www.thegradcafe.com/survey/"
 # Request the html from the website and convert it to html.
 def download_html(url):
     get_request = Request(url, headers={'User-Agent': 'Mozilla/5.0'}, method='GET')
-    response = urlopen(get_request, timeout = 60)
-    html_text = response.read().decode("utf-8")
-    return html_text
+
+    for attempt in range(5):  # retry up to 5 times
+        try:
+            response = urlopen(get_request, timeout=60)
+            html_text = response.read().decode("utf-8")
+            return html_text
+
+        except HTTPError as e:
+            # Retry on transient server errors (500–599)
+            if 500 <= e.code < 600:
+                wait = 2 ** attempt
+                print(f"HTTP {e.code} for {url}. Retrying in {wait}s...")
+                time.sleep(wait)
+                continue
+            raise  # non-5xx errors should still stop you (403, 404, etc.)
+
+        except URLError as e:
+            # Network hiccup; retry
+            wait = 2 ** attempt
+            print(f"Network error for {url}: {e}. Retrying in {wait}s...")
+            time.sleep(wait)
+            continue
+
+    raise RuntimeError(f"Failed to download after retries: {url}")
 
 def extract_text(html_text):
     soup = BeautifulSoup(html_text, 'html.parser')
