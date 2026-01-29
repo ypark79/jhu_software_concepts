@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+
+# Local LLM hosting (DO NOT COMMIT)
+llm_hosting/
+models/
+model_cache/
+
+# LLM model files
+*.bin
+*.safetensors
+*.gguf
+*.pt
+
+# Data outputs
+*.json
+clean.json
+applicant_data.json
+applicant_data_checkpoint.json
+llm_extend_applicant_data.json
+
+# OS junk
+.DS_Store
