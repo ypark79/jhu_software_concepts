@@ -67,7 +67,7 @@ COMMON_PROG_FIXES: Dict[str, str] = {
     "Info Studies": "Information Studies",
 }
 
-# ---------------- Few-shot prompt ----------------
+# ---------------- Few-shot prompt ------------------
 SYSTEM_PROMPT = (
     "You are a data cleaning assistant. Standardize degree program and university "
     "names.\n\n"

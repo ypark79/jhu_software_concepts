@@ -8,7 +8,7 @@ BASE_DOMAIN = "https://www.thegradcafe.com"
 BASE_SURVEY_URL = f"{BASE_DOMAIN}/survey"
 
 # ------------------------ Networking ------------------------
-
+# ----
 def _make_request(url: str, accept: str = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8") -> Request:
     headers = {
         "User-Agent": (

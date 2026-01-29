@@ -95,6 +95,7 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
 
+    # ----
     # --- Optional safety: remove old output so you don't clean stale data ---
     # Comment these two lines out if you prefer to resume from existing files.
     if os.path.exists(RAW_FILE):
