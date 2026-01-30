@@ -369,18 +369,33 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
             "Degree": row.get("Masters or PhD (if available)"),
             "GPA": normalize_zero(row.get("GPA (if available)")),
             "GRE AW": normalize_zero(row.get("GRE AW (if available)")),
+            "llm-generated-program": row.get("program_clean"),
+            "llm-generated-university": row.get("university_clean"),
         }
 
         final_rows.append(final_row)
 
+    final_rows_no_llm = []
+    for r in final_rows:
+        r2 = dict(r)
+        r2.pop("llm-generated-program", None)
+        r2.pop("llm-generated-university", None)
+        final_rows_no_llm.append(r2)
+
     print(f"Final rows written: {len(final_rows)} / {len(extracted_fields_raw)}")
-    return extracted_fields_raw, final_rows
+    return extracted_fields_raw, final_rows, final_rows_no_llm
 
 
 def main():
-    extracted_fields_raw = load_data("applicant_data.json")
-    _, final_rows = clean_data(extracted_fields_raw)
+    extracted_fields_raw, final_rows, final_rows_no_llm = clean_data(
+        load_data("raw_scraped_data.json")
+    )
+
+    # submission file 1 (includes llm-generated fields)
     save_data(final_rows, "llm_extend_applicant_data.json")
+
+    # submission file 2 (final dataset without llm-generated fields)
+    save_data(final_rows_no_llm, "applicant_data.json")
 
 
 if __name__ == "__main__":

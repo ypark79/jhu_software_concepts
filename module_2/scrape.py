@@ -166,11 +166,11 @@ if __name__ == "__main__":
 
     # Safety measure in case the code/server crashes. Allows code to
     # pick up where it left off.
-    CHECKPOINT_FILE = "applicant_data_checkpoint.json"
+    CHECKPOINT_FILE = "raw_scraped_data_checkpoint.json"
 
     # This will be the dirty output from scrape.py and will be used
     # by clean.py.
-    FINAL_FILE = "applicant_data.json"
+    FINAL_FILE = "raw_scraped_data.json"
 
     # Safety measure. Saves progress every 10 pages.
     CHECKPOINT_EVERY_PAGES = 10
