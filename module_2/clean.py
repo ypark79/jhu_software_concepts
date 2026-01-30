@@ -167,7 +167,7 @@ def save_data(final_rows, output_path="llm_extend_applicant_data.json"):
         json.dump(final_rows, f, ensure_ascii=False, indent=2)
 
 
-# -----------------------------
+# ------------------------------
 # LLM calling (DEDUPED for speed)
 # -----------------------------
 

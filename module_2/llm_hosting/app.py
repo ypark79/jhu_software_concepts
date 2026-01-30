@@ -16,7 +16,7 @@ from llama_cpp import Llama  # CPU-only by default if N_GPU_LAYERS=0
 
 app = Flask(__name__)
 
-# ---------------- Model config ----------------
+# ---------------- Model config -----------------
 MODEL_REPO = os.getenv(
     "MODEL_REPO",
     "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
