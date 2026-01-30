@@ -23,7 +23,7 @@ def _make_request(url: str, accept: str = "text/html,application/xhtml+xml,appli
         "Accept": accept,
         "Accept-Language": "en-US,en;q=0.9",
         # Reduces chances of losing connection with the website and code
-        # crashing
+        # crashing.
         "Connection": "keep-alive",
         "Referer": f"{BASE_DOMAIN}/survey/",
     }
