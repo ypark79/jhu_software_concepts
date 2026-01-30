@@ -338,12 +338,26 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
         json.dump(extracted_fields_raw, f, ensure_ascii=False, indent=2)
 
     # 8) Build final output rows in the required format
+
     final_rows = []
 
     for row in extracted_fields_raw:
+
+        prog = row.get("program_clean")
+        uni = row.get("university_clean")
+
+        # Combine program + university into one field (comma-separated)
+        if prog and uni:
+            combined_program = f"{prog}, {uni}"
+        elif prog:
+            combined_program = prog
+        elif uni:
+            combined_program = uni
+        else:
+            combined_program = None
+
         final_row = {
-            "program": row.get("program_clean"),
-            "university": row.get("university_clean"),
+            "program": combined_program,
             "comments": row.get("Comments (if available)"),
             "date_added": row.get("date_added_raw"),
             "url": row.get("application_url_raw"),
