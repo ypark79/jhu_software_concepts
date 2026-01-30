@@ -3,30 +3,33 @@ import json
 import re
 import time
 
-#-------
-# -----------------------------
-# Small helpers
-# -----------------------------
-
+# Create batches of data to control volume of data being cleaned.
+# Avoids overwhelming the LLM.
 def chunked(lst, size):
     for i in range(0, len(lst), size):
         yield lst[i:i + size]
 
-
+# Get rid of unnecessary whitespace and make spacing uniform to avoid
+# issues while parsing.
 def clean_whitespace(text):
     if text is None:
         return None
+
+    # REGEX to make everything one space apart.
     text = re.sub(r"\s+", " ", str(text))
     return text.strip()
 
 
+# Clean up the extracted Program data. Isolate it by eliminating any
+# unnecessary data around it. Standardize the spacing as well. This avoid
+# issues when the local LLM cleans the Program entries.
 def clean_program_cell(program_text):
     if program_text is None:
         return None
 
     program_text = clean_whitespace(program_text)
 
-    # If the cell contains decision info, split it off
+    # Remove all data not related to the student's program.
     split_words = [
         " Accepted", " Rejected", " Interview", " Wait",
         " Fall ", " Spring ", " Summer ", " Winter ",
@@ -41,6 +44,7 @@ def clean_program_cell(program_text):
     return program_text
 
 
+# Standardize the zeroes and decimals of all GPA test scores and GPAs.
 def normalize_zero(value):
     if value is None:
         return None
@@ -51,45 +55,48 @@ def normalize_zero(value):
 
     return value
 
-
-# -----------------------------
-# Validation filter (FIXED)
-# -----------------------------
-
-
-# -----------------------------
-# Extractors from result_text_raw
-# -----------------------------
-
+# Extract the data from the notes/comments section of each student
+# application.
 def extract_notes(text):
     if text is None:
         return None
+    # REGEX code to finds the word "Notes" and isolates all data after that
+    # and before "Timeline." This will be the comments data.
     match = re.search(r"Notes\s+(.*?)\s+Timeline", text, re.DOTALL)
     if match:
+        # Standardize spacing of the comments data.
         notes = match.group(1).strip()
         notes = re.sub(r"\s+", " ", notes)
         return notes
     return None
 
 
+# Extract the data for the "Decision" section of each student application.
 def extract_decision(text):
     if text is None:
         return None
+    # Find all the "Decision" text and isolate everything after it and
+    # before "Notification.
     match = re.search(r"Decision\s+(.+?)\s+Notification", text)
     if match:
         return match.group(1).strip()
     return None
 
 
+# Extract the students' notification_date data.
 def extract_notification_date(text):
     if text is None:
         return None
+    # Search for the word "Notification on" and use REGEX code to extract
+    # the date time group. Use REGEX to standardize date format is MM/DD/YYYY.
     match = re.search(r"Notification\s+on\s+(\d{2}/\d{2}/\d{4})", text)
     if match:
         return match.group(1)
     return None
 
 
+# Search for the word "Degree Type" and standardize the format only
+# allowing letters and periods.
 def extract_degree_type(text):
     if text is None:
         return None
@@ -98,7 +105,8 @@ def extract_degree_type(text):
         return match.group(1)
     return None
 
-
+# Search for "Degree's Country of Origin" and standardize if to Domestic
+# and Foreign.
 def extract_country_origin(text):
     if text is None:
         return None
@@ -108,6 +116,8 @@ def extract_country_origin(text):
     return None
 
 
+# Search for Undergrad GPA and extract score.Standardize score to
+# single digit, period, and then one to two digits.
 def extract_undergrad_gpa(text):
     if text is None:
         return None
@@ -117,6 +127,7 @@ def extract_undergrad_gpa(text):
     return None
 
 
+# Search for General GRE score and standardize numbering.
 def extract_gre_general(text):
     if text is None:
         return None
@@ -126,6 +137,7 @@ def extract_gre_general(text):
     return None
 
 
+# Search for GRE verbal score and standardize numbering.
 def extract_gre_verbal(text):
     if text is None:
         return None
@@ -135,6 +147,8 @@ def extract_gre_verbal(text):
     return None
 
 
+# Search GRE Analytical Writing score and standardize numbering to one
+# digit, period, one digit.
 def extract_gre_aw(text):
     if text is None:
         return None
@@ -144,6 +158,8 @@ def extract_gre_aw(text):
     return None
 
 
+# Search for the academic term and year. Standardize with "term" and 4
+# digit year.
 def extract_term_year(text):
     if text is None:
         return None
@@ -153,33 +169,33 @@ def extract_term_year(text):
     return None
 
 
-# -----------------------------
-# Load / Save
-# -----------------------------
-
+# Loads the dirty dataset produced by scrape.py and converts to Python
+# to prepare data to be cleaned.
 def load_data(input_path="applicant_data.json"):
     with open(input_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
+# Takes final cleaned data set, converts to JSON and writes to the file
+# name as outlined in assignment instructions.
 def save_data(final_rows, output_path="llm_extend_applicant_data.json"):
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(final_rows, f, ensure_ascii=False, indent=2)
 
 
-# ------------------------------
-# LLM calling (DEDUPED for speed)
-# -----------------------------
-
+# Sends batches of data in chunks to the local LLM provided by instructor
+# to avoid overwhelming the LLM.
+#
+# Stands by for results to come back, parses the data, and then sends
+# another chunk
 def _llm_post_rows(llm_url: str, rows_payload: list[dict], timeout_s: int = 300) -> list[dict]:
-    """
-    POST {'rows': [...]} to the local LLM.
-    Returns the list under 'rows'.
-    Retries included.
-    """
+
+    # Prepare payload for LLM as per format expected in app.py.
+    # Convert to JSON and then to bytes to send over to LLM.
     payload = {"rows": rows_payload}
     payload_bytes = json.dumps(payload).encode("utf-8")
 
+    # HTTP POST request.
     req = Request(
         llm_url,
         headers={"Content-Type": "application/json"},
@@ -187,7 +203,12 @@ def _llm_post_rows(llm_url: str, rows_payload: list[dict], timeout_s: int = 300)
         data=payload_bytes
     )
 
+    # Execute multiple retries in the case LLM fails or crashes.
+    # Keep track of error explanations to help troubleshoot failures.
     last_err = None
+
+    # Send HTTP request to LLM to get response. Decode JSON
+    # into Python and prints error.
     for attempt in range(5):
         try:
             resp = urlopen(req, timeout=timeout_s)
@@ -197,12 +218,13 @@ def _llm_post_rows(llm_url: str, rows_payload: list[dict], timeout_s: int = 300)
             if out_rows is None:
                 raise RuntimeError(f"LLM response missing 'rows': {obj}")
             return out_rows
+        # Identifies errors after attempts and records error.
         except Exception as e:
             last_err = e
             wait = 2 ** attempt
             print(f"LLM request failed ({e}). Retrying in {wait}s...")
             time.sleep(wait)
-
+    # Final error that cannot be resolved.
     raise RuntimeError(f"LLM batch failed after retries: {last_err}")
 
 
