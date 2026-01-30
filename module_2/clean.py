@@ -243,7 +243,7 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
     # Prepare LLM payload rows: [{"program": "..."}]
     unique_payload_rows = [{"program": s} for s in unique_llm_inputs]
 
-    CHUNK_SIZE = 300  # keep same safe chunk size
+    CHUNK_SIZE = 100  # keep same safe chunk size
     unique_results = []  # results aligned with unique_payload_rows order
 
     for batch in chunked(unique_payload_rows, CHUNK_SIZE):
