@@ -171,14 +171,14 @@ def extract_term_year(text):
 
 # Loads the dirty dataset produced by scrape.py and converts to Python
 # to prepare data to be cleaned.
-def load_data(input_path="applicant_data.json"):
+def load_data(input_path="raw_scraped_data.json"):
     with open(input_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 # Takes final cleaned data set, converts to JSON and writes to the file
 # name as outlined in assignment instructions.
-def save_data(final_rows, output_path="llm_extend_applicant_data.json"):
+def save_data(final_rows, output_path):
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(final_rows, f, ensure_ascii=False, indent=2)
 
