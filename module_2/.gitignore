@@ -21,9 +21,7 @@ model_cache/
 # Data outputs
 *.json
 clean.json
-applicant_data.json
 applicant_data_checkpoint.json
-llm_extend_applicant_data.json
 
 # OS junk
 .DS_Store

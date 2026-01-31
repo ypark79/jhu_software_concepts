@@ -13,7 +13,9 @@ base_survey_url = f"{base_domain}/survey"
 # This makes the requests look like its coming from a user on a MAC
 # using Mozilla. Avoids website from blocking requests due to
 # suspicion of bots.
-def _make_request(url: str, accept: str = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8") -> Request:
+def _make_request(url: str, accept: str = "text/html,application/xhtml+xml,"
+                                          "application/xml;q=0.9,*/*;q="
+                                          "0.8") -> Request:
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -93,7 +95,8 @@ def _row_dict_from_tr(tr) -> dict:
         # Build out complete url to facilitate code accessing the
         # student application links during scraping.
         if href:
-            full_url = href if href.startswith("http") else (base_domain + href)
+            full_url = href if href.startswith("http") \
+                else (base_domain + href)
 
     # Build initial dictionary with raw key-value pairs.
     return {
@@ -188,7 +191,8 @@ if __name__ == "__main__":
     while len(all_rows) < target:
         # Distinguish between the URL for the first page and subsequent
         # pages. Print progress.
-        page_url = f"{base_survey_url}/" if page == 1 else f"{base_survey_url}/?page={page}"
+        page_url = f"{base_survey_url}/" if page == 1 else \
+            f"{base_survey_url}/?page={page}"
         print("Scraping:", page_url)
 
         # Retry process in case server does not respond. Print location
@@ -205,11 +209,13 @@ if __name__ == "__main__":
         # Ensure to save progress.
         if not page_rows:
             empty_pages += 1
-            print(f"No usable rows on {page_url}. Backing off 10s... ({empty_pages}/5)")
+            print(f"No usable rows on {page_url}. Backing off 10s... "
+                  f"({empty_pages}/5)")
             time.sleep(10)
 
             if empty_pages >= 5:
-                print("Too many empty pages in a row. Saving checkpoint and exiting.")
+                print("Too many empty pages in a row. "
+                      "Saving checkpoint and exiting.")
                 save_data(all_rows, checkpoint_file)
                 break
 

@@ -44,7 +44,9 @@ def clean_program_cell(program_text):
     return program_text
 
 
-# Standardize the zeroes and decimals of all GPA test scores and GPAs.
+# This prevents any form of zero to represent an actual GRE score
+# or GPA. If its any form of 0, then it means a score/GPA was not
+# provided.
 def normalize_zero(value):
     if value is None:
         return None
@@ -163,7 +165,8 @@ def extract_gre_aw(text):
 def extract_term_year(text):
     if text is None:
         return None
-    match = re.search(r"\b(Spring|Summer|Fall|Autumn|Winter)\s+(20\d{2})\b", text, re.IGNORECASE)
+    match = re.search(r"\b(Spring|Summer|Fall|Autumn|Winter)\s+"
+                      r"(20\d{2})\b", text, re.IGNORECASE)
     if match:
         return match.group(1).title() + " " + match.group(2)
     return None
@@ -188,7 +191,8 @@ def save_data(final_rows, output_path):
 #
 # Stands by for results to come back, parses the data, and then sends
 # another chunk
-def _llm_post_rows(llm_url: str, rows_payload: list[dict], timeout_s: int = 300) -> list[dict]:
+def _llm_post_rows(llm_url: str, rows_payload: list[dict],
+                   timeout_s: int = 300) -> list[dict]:
 
     # Prepare payload for LLM as per format expected in app.py.
     # Convert to JSON and then to bytes to send over to LLM.
@@ -231,7 +235,8 @@ def _llm_post_rows(llm_url: str, rows_payload: list[dict], timeout_s: int = 300)
 # text, extracts desired entry text from "Notes" section inside
 # student URL links, sends program and university names to local
 # LLM (app.py) to clean, and produces two json outputs.
-def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"):
+def clean_data(extracted_fields_raw,
+               llm_url="http://127.0.0.1:8000/standardize"):
 
     # Standardize formatting by calling clean_whitespace to remove
     # unnecessary whitespace and standardize spacing.
@@ -252,7 +257,9 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
 
     # Create a dictionary where the key is a program-university pair and the
     # value is a list of row indices where that same pair appears in the dataset.
-    # This ensures only one program-uni pair goes into the local llm.
+    # This ensures only one program-uni pair goes into the local llm. Once the
+    # program and university are cleaned by the LLM, they will be mapped back
+    # to the all the applications that have this program-university pair.
     llm_key_to_indices = {}
 
     # Iterate over all scraped rows of uncleaned data. Enumerate
@@ -270,8 +277,9 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
         llm_inputs.append(llm_input_str)
 
         # This facilitates deduplication to ensure only one prog-uni
-        # pair gets sent to the local llm. It maps the prog-uni
-        # pair to an index number.
+        # pair gets sent to the local llm. This portion of code
+        # tracks all the rows in which a unique program-university
+        # pair exists.
         if llm_input_str not in llm_key_to_indices:
             llm_key_to_indices[llm_input_str] = []
         llm_key_to_indices[llm_input_str].append(i)
@@ -301,10 +309,13 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
     for batch in chunked(unique_payload_rows, chunk_size):
         cleaned_batch = _llm_post_rows(llm_url, batch, timeout_s=300)
         unique_results.extend(cleaned_batch)
-        print(f"Progress (unique LLM): {len(unique_results)} / {len(unique_payload_rows)}")
+        print(f"Progress (unique LLM): "
+              f"{len(unique_results)} / {len(unique_payload_rows)}")
 
     # Create lookup dictionary that creates pairs of original prog-uni pairs
-    # with llm-cleaned prog-uni pairs.
+    # with llm-cleaned prog-uni pairs. Allows you to pair the original and cleaned
+    # pairs up with an index, which then will be used to remap the cleaned
+    # pairs back to all the applications that have the unique prog-uni pair.
     llm_lookup = {}
     for i, row_out in enumerate(unique_results):
         # Connect original prog-uni pair to the llm-cleaned pair.
@@ -315,7 +326,8 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
         # into dictionary
         llm_lookup[src_key] = (prog_clean, uni_clean)
 
-    # Use llm lookup dictionary to produce the llm-cleaned programs and universities
+    # Use llm lookup dictionary to produce the llm-cleaned programs
+    # and universities
     for i, src in enumerate(llm_inputs):
         prog_clean, uni_clean = llm_lookup.get(src, (None, None))
         extracted_fields_raw[i]["program_clean"] = prog_clean
@@ -377,7 +389,8 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
         row["GRE Score (if available)"] = extract_gre_general(text)
         row["GRE V Score (if available)"] = extract_gre_verbal(text)
         row["GRE AW (if available)"] = extract_gre_aw(text)
-        row["Semester and Year of Program Start (if available)"] = extract_term_year(text)
+        row["Semester and Year of Program Start (if available)"] = (
+            extract_term_year(text))
 
     # Final step to package data and print the two required json files.
     final_rows = []
@@ -405,10 +418,14 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
             "date_added": row.get("date_added_raw"),
             "url": row.get("application_url_raw"),
             "status": row.get("Applicant Status"),
-            "term": row.get("Semester and Year of Program Start (if available)"),
-            "US/International": row.get("International / American Student (if available)"),
-            "GRE Score": normalize_zero(row.get("GRE Score (if available)")),
-            "GRE V Score": normalize_zero(row.get("GRE V Score (if available)")),
+            "term": row.get("Semester and Year of Program Start "
+                            "(if available)"),
+            "US/International": row.get("International / American Student "
+                                        "(if available)"),
+            "GRE Score": normalize_zero(row.get("GRE Score "
+                                                "(if available)")),
+            "GRE V Score": normalize_zero(row.get("GRE V Score "
+                                                  "(if available)")),
             "Degree": row.get("Masters or PhD (if available)"),
             "GPA": normalize_zero(row.get("GPA (if available)")),
             "GRE AW": normalize_zero(row.get("GRE AW (if available)")),
@@ -428,7 +445,8 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
         final_rows_no_llm.append(r2)
 
     # Verify the same number of rows were produced.
-    print(f"Final rows written: {len(final_rows)} / {len(extracted_fields_raw)}")
+    print(f"Final rows written: "
+          f"{len(final_rows)} / {len(extracted_fields_raw)}")
     return extracted_fields_raw, final_rows, final_rows_no_llm
 
 # Execute clean_data() function and produce the two required json files.

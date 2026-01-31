@@ -18,6 +18,4 @@ model_cache/
 # Outputs
 *.json
 clean.json
-applicant_data.json
 applicant_data_checkpoint.json
-llm_extend_applicant_data.json
