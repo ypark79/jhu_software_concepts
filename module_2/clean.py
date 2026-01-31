@@ -21,7 +21,7 @@ def clean_whitespace(text):
 
 
 # Clean up the extracted Program data. Isolate it by eliminating any
-# unnecessary data around it. Standardize the spacing as well. This avoid
+# unnecessary data around it. Standardize the spacing as well. This avoids
 # issues when the local LLM cleans the Program entries.
 def clean_program_cell(program_text):
     if program_text is None:
@@ -227,76 +227,121 @@ def _llm_post_rows(llm_url: str, rows_payload: list[dict], timeout_s: int = 300)
     # Final error that cannot be resolved.
     raise RuntimeError(f"LLM batch failed after retries: {last_err}")
 
-
+# Takes raw dataset rows from scrape.py, extracts desired entry
+# text, extracts desired entry text from "Notes" section inside
+# student URL links, sends program and university names to local
+# LLM (app.py) to clean, and produces two json outputs.
 def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"):
-    # 1) Whitespace cleanup
+
+    # Standardize formatting by calling clean_whitespace to remove
+    # unnecessary whitespace and standardize spacing.
     for row in extracted_fields_raw:
         row["program_raw"] = clean_whitespace(row.get("program_raw"))
         row["comments_raw"] = clean_whitespace(row.get("comments_raw"))
         row["status_raw"] = clean_whitespace(row.get("status_raw"))
         row["result_text_raw"] = clean_whitespace(row.get("result_text_raw"))
 
-    # 2) Program cell cleanup
+    # Extract and clean Program data
     for row in extracted_fields_raw:
         row["program_raw"] = clean_program_cell(row.get("program_raw"))
 
-    # 3) Build LLM input strings
-    # LLM expects key 'program' but your instructor LLM splits it into program/university.
+    # Prepare and package program and university data to send to app.py
+    # Execute deduplication to ensure program-university pairs are sent
+    # to llm only once.
     llm_inputs = []
-    llm_key_to_indices = {}  # dedupe map: llm_input_string -> [row indices]
 
+    # Create a dictionary where the key is a program-university pair and the
+    # value is a list of row indices where that same pair appears in the dataset.
+    # This ensures only one program-uni pair goes into the local llm.
+    llm_key_to_indices = {}
+
+    # Iterate over all scraped rows of uncleaned data. Enumerate
+    # to add an index for mapping later in code.
     for i, row in enumerate(extracted_fields_raw):
+        # Extract university and program names from raw data
+        # and account when info is not available.
         uni = row.get("university_raw") or ""
         prog = row.get("program_raw") or ""
+
+        # Pair up the program and university to ensure they're printed
+        # in the outputs as per the assignment sample output.
         llm_input_str = f"{prog}, {uni}".strip().strip(",")
 
         llm_inputs.append(llm_input_str)
 
+        # This facilitates deduplication to ensure only one prog-uni
+        # pair gets sent to the local llm. It maps the prog-uni
+        # pair to an index number.
         if llm_input_str not in llm_key_to_indices:
             llm_key_to_indices[llm_input_str] = []
         llm_key_to_indices[llm_input_str].append(i)
 
-    # 4) DEDUPE before calling LLM (big speed improvement)
+    # The keys are the prog-uni pairs. keys() method pulls out all
+    # these pairs and list() puts them in a list. These will be the
+    # deduplicated prog-uni pairs that are sent into the local llm.
     unique_llm_inputs = list(llm_key_to_indices.keys())
 
+    # Print total inputs vs unique (deduped) inputs to show how much the
+    # LLM workload is reduced by deduplication.
     print(f"LLM inputs total: {len(llm_inputs)}")
     print(f"LLM inputs unique (deduped): {len(unique_llm_inputs)}")
 
-    # Prepare LLM payload rows: [{"program": "..."}]
+    # Package each unique "program, university" string under the key "program"
+    # to match the input format expected by the local LLM (app.py).
     unique_payload_rows = [{"program": s} for s in unique_llm_inputs]
 
-    CHUNK_SIZE = 100  # keep same safe chunk size
+    # Through trial and error, batch size of 100 allows clean run of all
+    # 30,000 entries.
+    chunk_size = 100
     unique_results = []  # results aligned with unique_payload_rows order
 
-    for batch in chunked(unique_payload_rows, CHUNK_SIZE):
+    # Call def chunked() to send batches of 100 of the prog-uni pairs
+    # to the local LLM. Call def _llm_post_rows to receive the cleaned
+    # batch and then add to unique_results. Print progress check.
+    for batch in chunked(unique_payload_rows, chunk_size):
         cleaned_batch = _llm_post_rows(llm_url, batch, timeout_s=300)
         unique_results.extend(cleaned_batch)
         print(f"Progress (unique LLM): {len(unique_results)} / {len(unique_payload_rows)}")
 
-    # 5) Map unique LLM outputs back to all original rows
-    # Build dict: llm_input_str -> (program_clean, university_clean)
+    # Create lookup dictionary that creates pairs of original prog-uni pairs
+    # with llm-cleaned prog-uni pairs.
     llm_lookup = {}
     for i, row_out in enumerate(unique_results):
+        # Connect original prog-uni pair to the llm-cleaned pair.
         src_key = unique_llm_inputs[i]
         prog_clean = row_out.get("llm-generated-program")
         uni_clean = row_out.get("llm-generated-university")
+        # Store original prog-uni and post-llm cleaned prog uni-pair
+        # into dictionary
         llm_lookup[src_key] = (prog_clean, uni_clean)
 
+    # Use llm lookup dictionary to produce the llm-cleaned programs and universities
     for i, src in enumerate(llm_inputs):
         prog_clean, uni_clean = llm_lookup.get(src, (None, None))
         extracted_fields_raw[i]["program_clean"] = prog_clean
         extracted_fields_raw[i]["university_clean"] = uni_clean
 
-    # 6) Extract fields from result_text_raw
+    # This block of code is going to extract and clean the required
+    # data fields pulled from the raw "notes" section from the URLs
+    # in the student applications.
     for row in extracted_fields_raw:
         text = row.get("result_text_raw")
 
+        # Call extract_decision() function to pull out decision text if
+        # student was accepted or not. Same for notification_date
         decision = extract_decision(text)
         notification_date = extract_notification_date(text)
 
+        # Standardizes formatting of the word "accepted" by using
+        # the title function (capitalizes first letter and rest of the
+        # word is lower case.
         if decision is not None:
             decision = decision.title()
 
+        # Standardizes formatting of decision and notification_date
+        # as per the assignment sample output. If both data fields exist,
+        # then they are paired. If only decision exists, then it will say
+        # "Accepted"
         if decision is not None and notification_date is not None:
             row["Applicant Status"] = f"{decision} on {notification_date}"
         elif decision is not None:
@@ -304,6 +349,8 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
         else:
             row["Applicant Status"] = None
 
+        # Populate accepted/rejected with their respective dates in the
+        # dictionary.
         if decision == "Accepted":
             row["Accepted: Acceptance Date"] = notification_date
             row["Rejected: Rejection Date"] = None
@@ -314,12 +361,16 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
             row["Accepted: Acceptance Date"] = None
             row["Rejected: Rejection Date"] = None
 
+        # call extract_degree_type() to extract type of degree text
         row["Masters or PhD (if available)"] = extract_degree_type(text)
 
+        # Format origin of degree to be either Domestic or American
+        # as per assignment sample output.
         origin = extract_country_origin(text)
         if origin == "Domestic":
             origin = "American"
 
+        # Extra remaining fields and populate dictionary.
         row["Comments (if available)"] = extract_notes(text)
         row["International / American Student (if available)"] = origin
         row["GPA (if available)"] = extract_undergrad_gpa(text)
@@ -328,17 +379,7 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
         row["GRE AW (if available)"] = extract_gre_aw(text)
         row["Semester and Year of Program Start (if available)"] = extract_term_year(text)
 
-    # 7) Remove large raw field before writing clean.json (optional but helps file size)
-    for row in extracted_fields_raw:
-        if "result_text_raw" in row:
-            del row["result_text_raw"]
-
-    # Intermediate output (helpful for debugging + assignment transparency)
-    with open("clean.json", "w", encoding="utf-8") as f:
-        json.dump(extracted_fields_raw, f, ensure_ascii=False, indent=2)
-
-    # 8) Build final output rows in the required format
-
+    # Final step to package data and print the two required json files.
     final_rows = []
 
     for row in extracted_fields_raw:
@@ -346,7 +387,8 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
         prog = row.get("program_clean")
         uni = row.get("university_clean")
 
-        # Combine program + university into one field (comma-separated)
+        # Combine the program and university to match sample output.
+        # Account for unavailable data fields.
         if prog and uni:
             combined_program = f"{prog}, {uni}"
         elif prog:
@@ -356,6 +398,7 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
         else:
             combined_program = None
 
+        # Final rows required to generate the two required json files.
         final_row = {
             "program": combined_program,
             "comments": row.get("Comments (if available)"),
@@ -375,6 +418,8 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
 
         final_rows.append(final_row)
 
+    # applicant_data.json does not have the llm-generated program
+    # and university. Use .pop() to remove them.
     final_rows_no_llm = []
     for r in final_rows:
         r2 = dict(r)
@@ -382,19 +427,20 @@ def clean_data(extracted_fields_raw, llm_url="http://127.0.0.1:8000/standardize"
         r2.pop("llm-generated-university", None)
         final_rows_no_llm.append(r2)
 
+    # Verify the same number of rows were produced.
     print(f"Final rows written: {len(final_rows)} / {len(extracted_fields_raw)}")
     return extracted_fields_raw, final_rows, final_rows_no_llm
 
-
+# Execute clean_data() function and produce the two required json files.
 def main():
     extracted_fields_raw, final_rows, final_rows_no_llm = clean_data(
         load_data("raw_scraped_data.json")
     )
 
-    # submission file 1 (includes llm-generated fields)
+    # Final dataset with the llm-cleaned program and university.
     save_data(final_rows, "llm_extend_applicant_data.json")
 
-    # submission file 2 (final dataset without llm-generated fields)
+    # Final dataset without.
     save_data(final_rows_no_llm, "applicant_data.json")
 
 

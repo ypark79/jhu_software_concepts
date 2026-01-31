@@ -6,8 +6,8 @@ import time
 
 # Separate the base domain of the URL to facilitate code entering
 # different endpoints.
-BASE_DOMAIN = "https://www.thegradcafe.com"
-BASE_SURVEY_URL = f"{BASE_DOMAIN}/survey"
+base_domain = "https://www.thegradcafe.com"
+base_survey_url = f"{base_domain}/survey"
 
 # Standardize the GET requests that are made by the code to the website.
 # This makes the requests look like its coming from a user on a MAC
@@ -25,7 +25,7 @@ def _make_request(url: str, accept: str = "text/html,application/xhtml+xml,appli
         # Reduces chances of losing connection with the website and code
         # crashing.
         "Connection": "keep-alive",
-        "Referer": f"{BASE_DOMAIN}/survey/",
+        "Referer": f"{base_domain}/survey/",
     }
     return Request(url, headers=headers, method="GET")
 
@@ -93,7 +93,7 @@ def _row_dict_from_tr(tr) -> dict:
         # Build out complete url to facilitate code accessing the
         # student application links during scraping.
         if href:
-            full_url = href if href.startswith("http") else (BASE_DOMAIN + href)
+            full_url = href if href.startswith("http") else (base_domain + href)
 
     # Build initial dictionary with raw key-value pairs.
     return {
@@ -162,22 +162,22 @@ def load_data(filename: str) -> list[dict]:
 # Code execution portion.
 if __name__ == "__main__":
     # Ensure to scrape 30,000 complete entries
-    TARGET = 30000  # set to 30000 for final run
+    target = 30000  # set to 30000 for final run
 
     # Safety measure in case the code/server crashes. Allows code to
     # pick up where it left off.
-    CHECKPOINT_FILE = "raw_scraped_data_checkpoint.json"
+    checkpoint_file = "raw_scraped_data_checkpoint.json"
 
     # This will be the dirty output from scrape.py and will be used
     # by clean.py.
-    FINAL_FILE = "raw_scraped_data.json"
+    final_file = "raw_scraped_data.json"
 
     # Safety measure. Saves progress every 10 pages.
-    CHECKPOINT_EVERY_PAGES = 10
+    checkpoint_every_pages = 10
 
     # Safety measure that loads all scraped data before crash. Identify
     # what page the start on if code/server crashes.
-    all_rows = load_data(CHECKPOINT_FILE)
+    all_rows = load_data(checkpoint_file)
     print(f"Resuming with {len(all_rows)} entries from checkpoint.")
     page = (len(all_rows) // 50) + 1 if all_rows else 1
 
@@ -185,10 +185,10 @@ if __name__ == "__main__":
     empty_pages = 0
 
     # Initiate overarching while loop to scrape 30,000 entries.
-    while len(all_rows) < TARGET:
+    while len(all_rows) < target:
         # Distinguish between the URL for the first page and subsequent
         # pages. Print progress.
-        page_url = f"{BASE_SURVEY_URL}/" if page == 1 else f"{BASE_SURVEY_URL}/?page={page}"
+        page_url = f"{base_survey_url}/" if page == 1 else f"{base_survey_url}/?page={page}"
         print("Scraping:", page_url)
 
         # Retry process in case server does not respond. Print location
@@ -210,7 +210,7 @@ if __name__ == "__main__":
 
             if empty_pages >= 5:
                 print("Too many empty pages in a row. Saving checkpoint and exiting.")
-                save_data(all_rows, CHECKPOINT_FILE)
+                save_data(all_rows, checkpoint_file)
                 break
 
             page += 1
@@ -223,9 +223,9 @@ if __name__ == "__main__":
         print("Total entries so far:", len(all_rows))
 
         # Save progress in a checkpoint file to avoid losing work.
-        if page % CHECKPOINT_EVERY_PAGES == 0:
-            save_data(all_rows, CHECKPOINT_FILE)
-            print(f"Checkpoint saved: {CHECKPOINT_FILE}")
+        if page % checkpoint_every_pages == 0:
+            save_data(all_rows, checkpoint_file)
+            print(f"Checkpoint saved: {checkpoint_file}")
 
         # Pace the frequency of sever requests to avoid crashing.
         page += 1
@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
     # Save checkpoint file for safety and final dataset is complete.
     # Print status to indicate completion.
-    save_data(all_rows, CHECKPOINT_FILE)
-    save_data(all_rows[:TARGET], FINAL_FILE)
-    saved_n = min(len(all_rows), TARGET)
-    print(f"Done. Saved {saved_n} entries to {FINAL_FILE}")
+    save_data(all_rows, checkpoint_file)
+    save_data(all_rows[:target], final_file)
+    saved_n = min(len(all_rows), target)
+    print(f"Done. Saved {saved_n} entries to {final_file}")
