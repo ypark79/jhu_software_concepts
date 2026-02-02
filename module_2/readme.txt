@@ -5,6 +5,8 @@ Module Info: Module 2 Assignment: Web Scraping. Due on 01 FEB 2026 at 11:59 EST.
 SSH URL to GitHub Repo: git@github.com:ypark79/jhu_software_concepts.git
 Link to Module 2 Folder in GitHub Repo: https://github.com/ypark79/jhu_software_concepts/tree/main/module_2
 
+Robot.txt Check - The python code in scrape.py operates within compliance of grad cafe's robot.txt. Firstly, the robot.txt allows general access to the website's data, which is expressed by "Allow:/" Robot.txt prohibits access to /cgi-bin/ and /index-ad-test.php, which scrape.py does not access. scrape.py only accesses the publicly available survey pages as well as the URL's within each students' applications. Robot.txt prohibits using a series of bots to "crawl" the website; scrape.py does not use or identify as any of these bots. The code in def _make_request() in scrape.py defines the user agent as a user utilizing standard web browsers such as Mozilla, Safari, and Chrome on a Mac. Lastly, the robot.txt prohibits collecting data to train AI models; scrape.py only collects publicly available data to collect data and save it to build a dataset. 
+
 
 Approach - 
 
