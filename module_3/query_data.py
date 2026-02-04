@@ -1,16 +1,19 @@
-import psycopg
-
-database_name = "module_3"
+from db_connection import get_connection
 
 def main():
-    connection = psycopg.connect(dbname=database_name, host="localhost")
+    # Use the centralized utility to open a session
+    connection = get_connection()
+
+    if connection is None:
+        return
+
 
     with connection.cursor() as cur:
         # Number of entries that applied for Fall of 2026
         cur.execute("""
             SELECT COUNT(*)
             FROM applicants
-            WHERE term = 'Fall 2026';
+            WHERE term ILIKE '%2026%' OR status ILIKE '%2026%';
         """)
 
         result = cur.fetchone()
@@ -42,10 +45,10 @@ def main():
         # ensure the averages are rounded to two decimal places.
         cur.execute("""
                     SELECT 
-                        ROUND(AVG(gpa)::numeric, 2), 
-                        ROUND(AVG(gre)::numeric, 2), 
-                        ROUND(AVG(gre_v)::numeric, 2), 
-                        ROUND(AVG(gre_aw)::numeric, 2)
+                        AVG(gpa), 
+                        AVG(gre), 
+                        AVG(gre_v), 
+                        AVG(gre_aw)
                     FROM applicants;
                 """)
 
@@ -56,20 +59,22 @@ def main():
         print(f"Average GRE AW: {averages[3]}")
 
 
+
         # Average GPA of Fall 2026 American Students
         # Must filter out American students and application term.
         # The prompt does not specify, but assumption is to round the average
         # to two decimals using ROUND. However, ROUND will not work with a
         # FLOAT. "::numeric" converts the float to a decimal to enable ROUND.
+        # Add 'US' check and variations of the 2026 term.
         cur.execute("""
-            SELECT ROUND(AVG(gpa)::numeric, 2)
+            SELECT AVG(gpa)
             FROM applicants
-            WHERE us_or_international = 'American' 
-            AND term = 'Fall 2026';
+            WHERE (us_or_international ILIKE 'Amer%' OR us_or_international ILIKE 'US%')
+            AND (term ILIKE '%2026%' OR status ILIKE '%2026%');
         """)
-
         american_gpa_2026 = cur.fetchone()
-        print(f"Average GPA of American students in Fall 2026: {american_gpa_2026[0]}")
+        print(f"Average GPA of American/US students in Fall 2026: {american_gpa_2026[0]}")
+
 
 
         # Percentage of Acceptances for the Fall 2025 term.
@@ -100,7 +105,7 @@ def main():
         # for 'accepted' and enable rounding using "::numeric"
 
         cur.execute("""
-                SELECT ROUND(AVG(gpa)::numeric, 2)
+                SELECT AVG(gpa)
                 FROM applicants
                 WHERE term = 'Fall 2026' 
                 AND status ILIKE 'Accepted%';
@@ -113,42 +118,84 @@ def main():
         # Based on load_data.py, the university name is stored in
         # 'llm_generated_university' and the major/program in
         # 'llm_generated_program'.
+        # Account for different spellings of 'Johns Hopkins' and 'JHU'.
         cur.execute("""
             SELECT COUNT(*)
             FROM applicants
-            WHERE (llm_generated_university ILIKE 'Johns Hopkins%' OR llm_generated_university = 'JHU')
-            AND degree = 'Masters'
-            AND llm_generated_program ILIKE 'Computer Science%';
+            WHERE (llm_generated_university ILIKE 'John%Hopkins%' OR llm_generated_university ILIKE '%JHU%')
+            AND (degree ILIKE 'Master%' OR degree = 'MS')
+            AND llm_generated_program ILIKE '%Computer Science%';
         """)
-
         jhu_cs_masters_count = cur.fetchone()
         print(f"Number of applicants for JHU MS in CS: {jhu_cs_masters_count[0]}")
+
 
         # Number of applicants from 2026 that were accepted to Georgetown,
         # MIT, Stanford, or CMU for a PhD in Computer Science.
         #
         # Status ILIKE 'Accepted%2026': Targets 2026 acceptances since 'term' is null.
-        # Program: Checks for 'Computer Science' and 'Phd' within the same string.
-        # University Variations are as follows:
-        #   - 'George Town' (with space) vs 'Georgetown'
-        #   - 'Carnegie Melon' (one 'l') vs 'Carnegie Mellon'
-        #   - 'MIT' and 'Massachusetts Institute of Technology'
+        # Program: Checks for 'Computer Science' and 'Phd' within the same string
+        # Check for variations of CMU and MIT.
+
         cur.execute("""
                    SELECT COUNT(*)
                    FROM applicants
                    WHERE status ILIKE 'Accepted%2026'
-                   AND llm_generated_program ILIKE 'Computer Science%Phd%'
+                   AND (llm_generated_program ILIKE '%Computer Science%' AND (llm_generated_program ILIKE '%Ph%d%' OR degree ILIKE 'PhD%'))
                    AND (
                        llm_generated_university ILIKE 'George%Town%' 
                        OR llm_generated_university ILIKE 'Stanford%' 
                        OR llm_generated_university ILIKE '%MIT%'
-                       OR llm_generated_university ILIKE 'Massachusetts Institute of Technology%'
+                       OR llm_generated_university ILIKE '%Massachusetts Institute of Technology%'
                        OR llm_generated_university ILIKE 'Carnegie Mel%n%'
+                       OR llm_generated_university ILIKE '%CMU%'
                    );
                """)
-
         top_tier_phd_count = cur.fetchone()
         print(f"Number of 2026 PhD CS acceptances (GTown, MIT, Stanford, CMU): {top_tier_phd_count[0]}")
+
+        # Answer to question 9 in assignment. First test: run the query
+        # searching the "program" field from the original data. Second Test
+        # will run the search on the llm_generated_program/unversity fields.
+        # Here is the first test searching original data.
+        cur.execute("""
+                    SELECT COUNT(*)
+                    FROM applicants
+                    WHERE status ILIKE 'Accepted%2026'
+                    AND (program ILIKE '%Computer Science%' AND (program ILIKE '%Ph%d%' OR program ILIKE '%Doctor%'))
+                    AND (
+                        program ILIKE '%Georgetown%' 
+                        OR program ILIKE '%Stanford%' 
+                        OR program ILIKE '%MIT%'
+                        OR program ILIKE '%Massachusetts Institute of Technology%'
+                        OR program ILIKE '%Carnegie Mell%n%'
+                        OR program ILIKE '%CMU%'
+                    );
+                """)
+        original_fields_count = cur.fetchone()[0]
+
+        # Here is the second test searching the llm_generated_program
+        # and llm_generated_university fields.
+        cur.execute("""
+                    SELECT COUNT(*)
+                    FROM applicants
+                    WHERE status ILIKE 'Accepted%2026'
+                    AND (llm_generated_program ILIKE '%Computer Science%' AND (llm_generated_program ILIKE '%Ph%d%' OR degree ILIKE 'PhD%'))
+                    AND (
+                        llm_generated_university ILIKE 'George%Town%' 
+                        OR llm_generated_university ILIKE 'Stanford%' 
+                        OR llm_generated_university ILIKE '%MIT%'
+                        OR llm_generated_university ILIKE 'Massachusetts Institute of Technology%'
+                        OR llm_generated_university ILIKE 'Carnegie Mel%n%'
+                        OR llm_generated_university ILIKE '%CMU%'
+                    );
+                """)
+        llm_fields_count = cur.fetchone()[0]
+
+        # Print results.
+        print(f"PhD CS Acceptances (Original Fields): {original_fields_count}")
+        print(f"PhD CS Acceptances (LLM Fields): {llm_fields_count}")
+        print(f"Difference: {llm_fields_count - original_fields_count}.")
 
 
     connection.close()
