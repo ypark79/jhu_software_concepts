@@ -192,10 +192,59 @@ def main():
                 """)
         llm_fields_count = cur.fetchone()[0]
 
-        # Print results.
+        # Print results and the difference.
         print(f"PhD CS Acceptances (Original Fields): {original_fields_count}")
         print(f"PhD CS Acceptances (LLM Fields): {llm_fields_count}")
         print(f"Difference: {llm_fields_count - original_fields_count}.")
+
+
+        # Self-Generated Question #1: How many US American students
+        # versus international students were accepted to JHU in 2026?
+        cur.execute("""
+            SELECT 
+                COUNT(*) FILTER (WHERE us_or_international = 'American') AS american_count,
+                COUNT(*) FILTER (WHERE us_or_international = 'International') AS international_count
+            FROM applicants
+            WHERE (llm_generated_university ILIKE 'John%Hopkins%' OR llm_generated_university ILIKE '%JHU%')
+            AND status ILIKE 'Accepted%2026';
+        """)
+
+        comparison = cur.fetchone()
+        print("\nJHU 2026 Acceptance Comparison:")
+        print(f" - American Students: {comparison[0]}")
+        print(f" - International Students: {comparison[1]}")
+
+        # Determine if JHU accepted more US or International students.
+        if comparison[0] > comparison[1]:
+            print(
+                f"Result: JHU accepted {comparison[0] - comparison[1]} more American students than International students.")
+        elif comparison[1] > comparison[0]:
+            print(
+                f"Result: JHU accepted {comparison[1] - comparison[0]} more International students than American students.")
+        else:
+            print("Result: JHU accepted an equal number of American and International students.")
+
+
+
+        # Self-Generated Question #2: Which university accepted the most
+        # international students in 2026?
+        cur.execute("""
+            SELECT llm_generated_university, COUNT(*) as acceptance_count
+            FROM applicants
+            WHERE us_or_international = 'International'
+            AND status ILIKE 'Accepted%2026'
+            GROUP BY llm_generated_university
+            ORDER BY acceptance_count DESC
+            LIMIT 1;
+        """)
+
+        top_intl_uni = cur.fetchone()
+
+        print("\nUniversity with the most International acceptances in 2026:")
+        if top_intl_uni:
+            print(f" - {top_intl_uni[0]} with {top_intl_uni[1]} acceptances.")
+        else:
+            print(" - No international acceptances found for 2026.")
 
 
     connection.close()
