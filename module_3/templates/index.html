@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grad School Cafe Data Analysis</title>
+    <style>
+        /* CSS to match the 'Analysis' sample dashboard */
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+        }
+
+        header {
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+        }
+
+        .project-title {
+            font-size: 12px;
+            color: #888;
+            margin: 0;
+            text-transform: capitalize;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 5px 0 0 0;
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .query-item {
+            margin-bottom: 35px;
+            padding-bottom: 10px;
+        }
+
+        .question {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 17px;
+            line-height: 1.4;
+        }
+
+        .answer {
+            font-style: italic;
+            color: #444;
+            font-size: 16px;
+            display: block;
+            padding-left: 5px;
+        }
+
+        /* Responsive styling */
+        @media (max-width: 600px) {
+            body { padding: 15px; }
+            .container { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <p class="project-title">Grad School Cafe Data Analysis</p>
+            <h1>Analysis</h1>
+        </header>
+
+        <!-- Question 1 -->
+        <div class="query-item">
+            <span class="question">How many entries do you have in your database who have applied for Fall 2026?</span>
+            <span class="answer">Answer: Applicant count: {{ data.count_2026 }}</span>
+        </div>
+
+        <!-- Question 2 -->
+        <div class="query-item">
+            <span class="question">What percentage of entries are from international students (not American or Other) (to two decimal places)?</span>
+            <span class="answer">Answer: Percent International: {{ data.pct_intl }}%</span>
+        </div>
+
+        <!-- Question 3 -->
+        <div class="query-item">
+            <span class="question">What is the average GPA, GRE, GRE V, GRE AW of applicants who provide these metrics?</span>
+            <span class="answer">
+                Answer: Average GPA: {{ data.avg_gpa }}, Average GRE: {{ data.avg_gre }},
+                Average GRE V: {{ data.avg_gre_v }}, Average GRE AW: {{ data.avg_gre_aw }}
+            </span>
+        </div>
+
+        <!-- Question 4 -->
+        <div class="query-item">
+            <span class="question">What is their average GPA of American students in Fall 2026?</span>
+            <span class="answer">Answer: Average GPA American: {{ data.avg_gpa_us }}</span>
+        </div>
+
+        <!-- Question 5 -->
+        <div class="query-item">
+            <span class="question">What percent of entries for Fall 2025 are Acceptances (to two decimal places)?</span>
+            <span class="answer">Answer: Acceptance percent: {{ data.pct_accept_2025 }}%</span>
+        </div>
+
+        <!-- Question 6 -->
+        <div class="query-item">
+            <span class="question">What is the average GPA of applicants who applied for Fall 2026 who are Acceptances?</span>
+            <span class="answer">Answer: Average GPA Acceptance: {{ data.avg_gpa_accept_2026 }}</span>
+        </div>
+
+        <!-- Question 7 -->
+        <div class="query-item">
+            <span class="question">How many entries are from applicants who applied to JHU for a masters degrees in Computer Science?</span>
+            <span class="answer">Answer: JHU CS Masters Count: {{ data.jhu_cs_count }}</span>
+        </div>
+
+        <!-- Question 8 -->
+        <div class="query-item">
+            <span class="question">How many entries from 2026 are acceptances from applicants who applied to Georgetown University, MIT, Stanford University, or Carnegie Mellon University for a PhD in Computer Science?</span>
+            <span class="answer">Answer: PhD Count: {{ data.top_phd_count }}</span>
+        </div>
+
+        <!-- Self-Generated Question 1 -->
+        <div class="query-item">
+            <span class="question">How many US American students versus International students were accepted to JHU in 2026?</span>
+            <span class="answer">Answer: American: {{ data.jhu_us }}, International: {{ data.jhu_intl }}</span>
+        </div>
+
+        <!-- Self-Generated Question 2 -->
+        <div class="query-item">
+            <span class="question">Which university accepted the most international students in 2026?</span>
+            <span class="answer">Answer: {{ data.top_intl_uni }} with {{ data.top_intl_count }} acceptances.</span>
+        </div>
+
+    </div>
+</body>
+</html>
