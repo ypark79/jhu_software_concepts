@@ -13,11 +13,12 @@ def main():
         cur.execute("""
             SELECT COUNT(*)
             FROM applicants
-            WHERE term ILIKE '%2026%' OR status ILIKE '%2026%';
+            WHERE term ILIKE '%Fall 2026%';
         """)
 
         result = cur.fetchone()
         print("Entries for Fall 2026:", result[0])
+
 
         # Percentage of international applicants
         # Use FILTER to count only 'International' rows and then
@@ -28,7 +29,7 @@ def main():
             SELECT
                 ROUND(
                     (COUNT(*) FILTER (WHERE us_or_international = 'International'))::DECIMAL / 
-                    COUNT(*) * 100, 2
+                    NULLIF(COUNT(*), 0) * 100, 2
                 )
             FROM applicants;
         """)
@@ -45,10 +46,10 @@ def main():
         # ensure the averages are rounded to two decimal places.
         cur.execute("""
                     SELECT 
-                        AVG(gpa), 
-                        AVG(gre), 
-                        AVG(gre_v), 
-                        AVG(gre_aw)
+                        ROUND(AVG(gpa)::numeric, 2), 
+                        ROUND(AVG(gre)::numeric, 2), 
+                        ROUND(AVG(gre_v)::numeric, 2), 
+                        ROUND(AVG(gre_aw)::numeric, 2) 
                     FROM applicants;
                 """)
 
@@ -67,14 +68,13 @@ def main():
         # FLOAT. "::numeric" converts the float to a decimal to enable ROUND.
         # Add 'US' check and variations of the 2026 term.
         cur.execute("""
-            SELECT AVG(gpa)
+            SELECT ROUND(AVG(gpa)::numeric, 2)
             FROM applicants
             WHERE (us_or_international ILIKE 'Amer%' OR us_or_international ILIKE 'US%')
-            AND (term ILIKE '%2026%' OR status ILIKE '%2026%');
+            AND term ILIKE '%Fall 2026%';
         """)
         american_gpa_2026 = cur.fetchone()
         print(f"Average GPA of American/US students in Fall 2026: {american_gpa_2026[0]}")
-
 
 
         # Percentage of Acceptances for the Fall 2025 term.
@@ -87,8 +87,8 @@ def main():
         cur.execute("""
                    SELECT
                        ROUND(
-                           (COUNT(*) FILTER (WHERE term = 'Fall 2025' AND status ILIKE 'Accepted%'))::DECIMAL / 
-                           NULLIF(COUNT(*) FILTER (WHERE term = 'Fall 2025'), 0) * 100, 2
+                           (COUNT(*) FILTER (WHERE term ILIKE '%Fall 2025%' AND status ILIKE 'Accepted%'))::DECIMAL / 
+                           NULLIF(COUNT(*) FILTER (WHERE term ILIKE '%Fall 2025%'), 0) * 100, 2
                        )
                    FROM applicants;
                """)
@@ -100,19 +100,21 @@ def main():
         else:
             print("Percentage of Accepted applicants for Fall 2025: N/A (No data for this term)")
 
+
         # Average GPA of Fall 2026 Acceptances
         # Filter for 'Fall 2026' and call AVG(). Account for case insensitivity.
         # for 'accepted' and enable rounding using "::numeric"
 
         cur.execute("""
-                SELECT AVG(gpa)
+                SELECT ROUND(AVG(gpa)::numeric, 2)
                 FROM applicants
-                WHERE term = 'Fall 2026' 
+                WHERE term ILIKE '%Fall 2026%' 
                 AND status ILIKE 'Accepted%';
             """)
 
         avg_gpa_accepted_2026 = cur.fetchone()
         print(f"Average GPA of Fall 2026 Acceptances: {avg_gpa_accepted_2026[0]}")
+
 
         # Number of applicants who applied to JHU for a MS in CS.
         # Based on load_data.py, the university name is stored in
@@ -198,7 +200,7 @@ def main():
         print(f"Difference: {llm_fields_count - original_fields_count}.")
 
 
-        # Self-Generated Question #1: How many US American students
+        # Self-Generated Question #1: How many American students
         # versus international students were accepted to JHU in 2026?
         cur.execute("""
             SELECT 

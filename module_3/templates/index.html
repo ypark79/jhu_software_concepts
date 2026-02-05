@@ -101,7 +101,7 @@
 
         <!-- Question 4 -->
         <div class="query-item">
-            <span class="question">What is their average GPA of American students in Fall 2026?</span>
+            <span class="question">What is the average GPA of American students in Fall 2026?</span>
             <span class="answer">Answer: Average GPA American: {{ data.avg_gpa_us }}</span>
         </div>
 
@@ -128,6 +128,16 @@
             <span class="question">How many entries from 2026 are acceptances from applicants who applied to Georgetown University, MIT, Stanford University, or Carnegie Mellon University for a PhD in Computer Science?</span>
             <span class="answer">Answer: PhD Count: {{ data.top_phd_count }}</span>
         </div>
+
+        <!-- Question 9: -->
+        <div class="query-item">
+            <span class="question">Do your numbers for question 8 change if you use LLM Generated Fields (rather than your downloaded fields)?</span>
+            <span class="answer">
+                Answer: The comparison resulted in a difference of {{ data.phd_difference }} entries
+                (Original Fields: {{ data.orig_phd_count }}, LLM Fields: {{ data.top_phd_count }}).
+            </span>
+        </div>
+
 
         <!-- Self-Generated Question 1 -->
         <div class="query-item">

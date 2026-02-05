@@ -24,7 +24,7 @@ def index():
                 cur.execute("""
                     SELECT COUNT(*) 
                     FROM applicants 
-                    WHERE term ILIKE '%2026%' OR status ILIKE '%2026%';
+                    WHERE term ILIKE '%Fall 2026%';
                 """)
                 results['count_2026'] = cur.fetchone()[0]
 
@@ -60,23 +60,25 @@ def index():
                 cur.execute("""
                     SELECT ROUND(AVG(gpa)::numeric, 2) FROM applicants 
                     WHERE (us_or_international ILIKE 'Amer%' OR us_or_international ILIKE 'US%')
-                    AND (term = 'Fall 2026' OR status ILIKE '%2026%');
+                    AND term ILIKE '%Fall 2026%';
                 """)
                 results['avg_gpa_us'] = cur.fetchone()[0]
+
 
                 # Query 5: Acceptance Percentage for Fall 2025
                 cur.execute("""
                     SELECT ROUND(
-                        (COUNT(*) FILTER (WHERE term = 'Fall 2025' AND status ILIKE 'Accepted%'))::DECIMAL / 
-                        NULLIF(COUNT(*) FILTER (WHERE term = 'Fall 2025'), 0) * 100, 2
+                        (COUNT(*) FILTER (WHERE term ILIKE '%Fall 2025%' AND status ILIKE 'Accepted%'))::DECIMAL / 
+                        NULLIF(COUNT(*) FILTER (WHERE term ILIKE '%Fall 2025%'), 0) * 100, 2
                     ) FROM applicants;
                 """)
                 results['pct_accept_2025'] = cur.fetchone()[0]
 
+
                 # Query 6: Average GPA of Fall 2026 Acceptances
                 cur.execute("""
                             SELECT ROUND(AVG(gpa)::numeric, 2) FROM applicants 
-                            WHERE (term ILIKE '%2026%' OR status ILIKE '%2026%') 
+                            WHERE term ILIKE '%Fall 2026%' 
                             AND status ILIKE 'Accepted%';
                         """)
                 results['avg_gpa_accept_2026'] = cur.fetchone()[0]
@@ -106,6 +108,26 @@ def index():
                     );
                 """)
                 results['top_phd_count'] = cur.fetchone()[0]
+
+                #Query 9: Comparing Orignal vs LLM Generated Data
+                cur.execute("""
+                    SELECT COUNT(*)
+                    FROM applicants
+                    WHERE status ILIKE 'Accepted%2026'
+                    AND (program ILIKE '%Computer Science%' AND (program ILIKE '%Ph%d%' OR program ILIKE '%Doctor%'))
+                    AND (
+                        program ILIKE '%Georgetown%' 
+                        OR program ILIKE '%Stanford%' 
+                        OR program ILIKE '%MIT%'
+                        OR program ILIKE '%Massachusetts Institute of Technology%'
+                        OR program ILIKE '%Carnegie Mel%n%'
+                        OR program ILIKE '%CMU%'
+                    );
+                """)
+                results['orig_phd_count'] = cur.fetchone()[0]
+
+                # Calculate the difference to show the impact of the LLM cleanup
+                results['phd_difference'] = results['top_phd_count'] - results['orig_phd_count']
 
 
                 # Self-Generated Question #1: How many US American students
