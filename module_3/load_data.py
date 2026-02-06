@@ -1,9 +1,38 @@
 import json
+import re
 from datetime import datetime
 from db_connection import get_connection
 
 # JSON file was put into a subfolder named Data for organization.
-json_file = "data/llm_extend_applicant_data.json"
+json_file = "Data/llm_extend_applicant_data.json"
+
+# Infer the admission term from the date_added field.
+# GradCafe entries posted Oct–Feb typically correspond to Fall of the
+# following year; entries posted Mar–Sep correspond to Fall of that year.
+def infer_term(date_str, status_str):
+    # First, try to extract the year from the status field (e.g.,
+    # "Accepted on 01/15/2026") since that directly reflects the
+    # admission cycle timing.
+    if status_str:
+        date_match = re.search(r"(\d{2})/\d{2}/(\d{4})", str(status_str))
+        if date_match:
+            year = int(date_match.group(2))
+            return f"Fall {year}"
+
+    # Fallback: infer from the date_added field.
+    parsed = parse_date(date_str)
+    if parsed is None:
+        return None
+    month = parsed.month
+    year = parsed.year
+    # Posts from Oct–Dec are for Fall of the next year.
+    # Posts from Jan–Sep are for Fall of the current year.
+    if month >= 10:
+        return f"Fall {year + 1}"
+    else:
+        return f"Fall {year}"
+
+
 
 # Convert date entries from strings into Python date objects to enable
 # PostgreSQL compatibility.
@@ -91,6 +120,13 @@ def main():
 
                 # Extract values from the JSON dictionary using the exact keys
                 # seen in the 'llm_extend_applicant_data.json' file.
+                term_value = row.get("term")
+                if not term_value:
+                    term_value = infer_term(
+                        row.get("date_added"),
+                        row.get("status")
+                    )
+
                 values = (
                     p_id,
                     row.get("program"),
@@ -98,7 +134,7 @@ def main():
                     parse_date(row.get("date_added")),
                     row.get("url"),
                     row.get("status"),
-                    row.get("term"),
+                    term_value,
                     row.get("US/International"),
                     try_float(row.get("GPA")),
                     try_float(row.get("GRE Score")),

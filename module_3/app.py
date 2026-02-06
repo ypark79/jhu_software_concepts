@@ -1,9 +1,16 @@
-from flask import Flask, render_template
+import subprocess
+import sys
+from flask import Flask, render_template, redirect, url_for, flash
 from db_connection import get_connection
 
 # Initialize the Flask application.
 app = Flask(__name__)
+# A secret key is needed to use the 'flash' message system for user notifications.
+app.secret_key = 'grad_school_assignment_secret_key'
 
+# Global variable to keep track of the scraping process.
+# We use this to know if a data pull is currently active.
+scraping_process = None
 
 # Home route: runs def index() when browser hits home page.
 @app.route('/')
@@ -14,6 +21,9 @@ def index():
     # Establish dictionary to store all query results so they are
     # organized when sent to  HTML page.
     results = {}
+
+    # Check if a scraping process was started and if it is still running (.poll() is None).
+    is_scraping = scraping_process is not None and scraping_process.poll() is None
 
     if connection:
         try:
@@ -168,7 +178,48 @@ def index():
             if connection:
                 connection.close()
 
-        return render_template('index.html', data=results)
+        # We pass 'is_scraping' to the HTML template so we can disable buttons in the UI.
+        return render_template('index.html', data=results, is_scraping=is_scraping)
+
+# New Route: Handles the "Pull Data" button click.
+@app.route('/pull-data', methods=['POST'])
+def pull_data():
+    global scraping_process
+
+    # Verify if a process is already running to avoid starting multiple scrapers.
+    if scraping_process is not None and scraping_process.poll() is None:
+        flash("A data pull is already in progress. Please wait.")
+    else:
+        # We point to the script inside the 'Scraper' subfolder.
+        # cwd='Scraper' tells Python to run the script as if it were inside that folder.
+        try:
+            scraping_process = subprocess.Popen(
+                [sys.executable, 'main.py'],
+                cwd='Scraper'
+            )
+            flash("Data pull started! New entries are being scraped and added to the database.")
+        except Exception as e:
+            flash(f"Error starting data pull: {e}")
+
+    return redirect(url_for('index'))
+
+
+
+# New Route: Handles the "Update Analysis" button click.
+@app.route('/update-analysis', methods=['POST'])
+def update_analysis():
+    global scraping_process
+
+    # Check if a scraping process is currently running.
+    if scraping_process is not None and scraping_process.poll() is None:
+        # If it is running, we do nothing and tell the user.
+        flash("Cannot update analysis while a data pull is currently running.")
+    else:
+        # If no scraper is running, we simply refresh the page to run the database queries again.
+        flash("Analysis refreshed with the most up-to-date data!")
+
+    return redirect(url_for('index'))
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)

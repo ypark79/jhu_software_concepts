@@ -7,7 +7,6 @@ def main():
     if connection is None:
         return
 
-
     with connection.cursor() as cur:
         # Number of entries that applied for Fall of 2026
         cur.execute("""

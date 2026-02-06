@@ -40,6 +40,51 @@
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            position: relative; /* Allows the Update button to be pinned to the top right */
+        }
+
+        /* Styling for the Update button container */
+        .header-actions {
+            position: absolute;
+            top: 40px;
+            right: 30px;
+            text-align: right;
+        }
+
+        /* Basic styling for our buttons */
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .btn-pull { background-color: #28a745; color: white; }
+        .btn-update { background-color: #007bff; color: white; }
+
+        /* This style applies when a button is disabled (during scraping) */
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* Style for the descriptive information text under buttons */
+        .info-text {
+            font-size: 11px;
+            color: #777;
+            display: block;
+            margin-top: 4px;
+            max-width: 200px;
+            line-height: 1.3;
+        }
+
+        /* Styling for the alert box that shows "flash" messages from Python */
+        .flash-messages {
+            padding: 12px;
+            background-color: #e7f3ff;
+            color: #004085;
+            border: 1px solid #b3d7ff;
+            border-radius: 4px;
+            margin-bottom: 25px;
         }
 
         .query-item {
@@ -74,9 +119,42 @@
 
     <div class="container">
         <header>
+            <!-- SECOND BUTTON: Update Analysis (Top Right) -->
+            <div class="header-actions">
+                <form action="/update-analysis" method="POST">
+                    <!-- The button is disabled if 'is_scraping' is True (sent from app.py) -->
+                    <button type="submit" class="btn btn-update" {% if is_scraping %}disabled{% endif %}>Update Analysis</button>
+                    <span class="info-text">Refreshes the page to show latest results. Disabled if data pull is active.</span>
+                </form>
+            </div>
             <p class="project-title">Grad School Cafe Data Analysis</p>
             <h1>Analysis</h1>
         </header>
+
+        <!-- Notification section: shows messages like "Data pull started!" -->
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash-messages">
+              {% for message in messages %}
+                <div>{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- FIRST BUTTON: Pull Data (User Friendly Explanation) -->
+        <div style="margin-bottom: 40px; padding: 15px; background: #f9f9f9; border-left: 5px solid #28a745; border-radius: 4px;">
+            <form action="/pull-data" method="POST">
+                <button type="submit" class="btn btn-pull" {% if is_scraping %}disabled{% endif %}>
+                    {% if is_scraping %}Pulling Data...{% else %}Pull Data{% endif %}
+                </button>
+                <p class="info-text" style="max-width: 100%;">
+                    Clicking this will download new records from Grad Cafe, clean them with the LLM formatting process,
+                    and add them to the database. This runs in the background.
+                </p>
+            </form>
+        </div>
+
 
         <!-- Question 1 -->
         <div class="query-item">
