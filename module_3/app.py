@@ -207,7 +207,9 @@ def index():
         return render_template('index.html',
                                data=results, is_scraping=is_scraping)
 
-
+# This code block lets the webpage know if the scrape/clean process
+# is occuring. This lets index.html know whether to disable the
+# buttons while the pipeline is executing.
 @app.route('/scrape-status')
 def scrape_status():
     running = scraping_process is not None and scraping_process.poll() is None

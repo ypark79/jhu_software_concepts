@@ -19,3 +19,4 @@ model_cache/
 *.json
 clean.json
 applicant_data_checkpoint.json
+!module_3/llm_extend_applicant_data.json
