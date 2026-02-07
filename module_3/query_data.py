@@ -91,8 +91,7 @@ def main():
                        ROUND(
                            (COUNT(*) FILTER (WHERE term ILIKE '%Fall 2025%' 
                            AND status ILIKE 'Accepted%'))::DECIMAL / 
-                           NULLIF(COUNT(*) FILTER (WHERE term ILIKE '%Fall 
-                           2025%'), 0) * 100, 2
+                           NULLIF(COUNT(*) FILTER (WHERE term ILIKE '%Fall 2025%'), 0) * 100, 2
                        )
                    FROM applicants;
                """)
@@ -159,8 +158,7 @@ def main():
                        llm_generated_university ILIKE 'George%Town%' 
                        OR llm_generated_university ILIKE 'Stanford%' 
                        OR llm_generated_university ILIKE '%MIT%'
-                       OR llm_generated_university ILIKE '%Massachusetts 
-                       Institute of Technology%'
+                       OR llm_generated_university ILIKE '%Massachusetts Institute of Technology%'
                        OR llm_generated_university ILIKE 'Carnegie Mel%n%'
                        OR llm_generated_university ILIKE '%CMU%'
                    );
@@ -184,8 +182,7 @@ def main():
                         program ILIKE '%Georgetown%' 
                         OR program ILIKE '%Stanford%' 
                         OR program ILIKE '%MIT%'
-                        OR program ILIKE '%Massachusetts Institute of 
-                        Technology%'
+                        OR program ILIKE '%Massachusetts Institute of Technology%'
                         OR program ILIKE '%Carnegie Mell%n%'
                         OR program ILIKE '%CMU%'
                     );
@@ -206,8 +203,7 @@ def main():
                         llm_generated_university ILIKE 'George%Town%' 
                         OR llm_generated_university ILIKE 'Stanford%' 
                         OR llm_generated_university ILIKE '%MIT%'
-                        OR llm_generated_university ILIKE 'Massachusetts 
-                        Institute of Technology%'
+                        OR llm_generated_university ILIKE '%Massachusetts Institute of Technology%'
                         OR llm_generated_university ILIKE 'Carnegie Mel%n%'
                         OR llm_generated_university ILIKE '%CMU%'
                     );

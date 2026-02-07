@@ -2,6 +2,7 @@ import subprocess
 import sys
 from flask import Flask, render_template, redirect, url_for, flash
 from db_connection import get_connection
+from flask import jsonify
 
 # Initialize the Flask application.
 app = Flask(__name__)
@@ -47,8 +48,7 @@ def index():
                 # Use ::DECIMAL and NULLIF to ensure accurate percentage.
                 cur.execute("""
                     SELECT ROUND(
-                        (COUNT(*) FILTER (WHERE us_or_international = 
-                        'International'))::DECIMAL / 
+                        (COUNT(*) FILTER (WHERE us_or_international = 'International'))::DECIMAL / 
                         NULLIF(COUNT(*), 0) * 100, 2
                     ) FROM applicants;
                 """)
@@ -124,8 +124,7 @@ def index():
                         llm_generated_university ILIKE 'George%Town%' 
                         OR llm_generated_university ILIKE 'Stanford%' 
                         OR llm_generated_university ILIKE '%MIT%' 
-                        OR llm_generated_university ILIKE '%Massachusetts 
-                        Institute of Technology%'
+                        OR llm_generated_university ILIKE '%Massachusetts Institute of Technology%'
                         OR llm_generated_university ILIKE 'Carnegie Mel%n%'
                         OR llm_generated_university ILIKE '%CMU%'
                     );
@@ -144,8 +143,7 @@ def index():
                         program ILIKE '%Georgetown%' 
                         OR program ILIKE '%Stanford%' 
                         OR program ILIKE '%MIT%'
-                        OR program ILIKE '%Massachusetts Institute of 
-                        Technology%'
+                        OR program ILIKE '%Massachusetts Institute of Technology%'
                         OR program ILIKE '%Carnegie Mel%n%'
                         OR program ILIKE '%CMU%'
                     );
@@ -154,8 +152,9 @@ def index():
 
                 # Calculate the difference to show the impact of the
                 # LLM cleanup
-                results['phd_difference'] = results['top_phd_count']
-                - results['orig_phd_count']
+                results['phd_difference'] = (
+                        results['top_phd_count'] - results['orig_phd_count']
+                )
 
 
                 # Self-Generated Question #1: How many US American students
@@ -207,6 +206,12 @@ def index():
         # can disable buttons in the UI.
         return render_template('index.html',
                                data=results, is_scraping=is_scraping)
+
+
+@app.route('/scrape-status')
+def scrape_status():
+    running = scraping_process is not None and scraping_process.poll() is None
+    return jsonify({"is_scraping": running})
 
 # New Route: Handles the "Pull Data" button click.
 @app.route('/pull-data', methods=['POST'])

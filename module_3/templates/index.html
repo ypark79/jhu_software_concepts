@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grad School Cafe Data Analysis</title>
-    {% if is_scraping %}
-    <meta http-equiv="refresh" content="5">
-    {% endif %}
     <style>
         /* CSS to match the 'Analysis' sample dashboard */
         body {
@@ -156,10 +153,11 @@
         <div style="margin-bottom: 40px; padding: 15px; background: #f9f9f9;
         border-left: 5px solid #28a745; border-radius: 4px;">
             <form action="{{ url_for('pull_data') }}" method="POST">
-                <button type="submit" class="btn btn-pull" {% if is_scraping
-                        %}disabled{% endif %}>
-                    {% if is_scraping %}Pulling Data...{% else %}
-                    Pull Data{% endif %}
+                <button type="submit" class="btn btn-pull"
+                    {% if is_scraping %}disabled{% endif %}>
+                    <span id="pull-btn-text">
+                    {% if is_scraping %}Pulling Data...{% else %}Pull Data{% endif %}
+                    </span>
                 </button>
                 <p class="info-text" style="max-width: 100%;">
                     Clicking this will download new records from Grad Cafe,
@@ -273,5 +271,33 @@
         </div>
 
     </div>
+<script>
+  async function refreshScrapeStatus() {
+    try {
+      const res = await fetch("/scrape-status");
+      const data = await res.json();
+
+      const isScraping = data.is_scraping;
+
+      const pullBtn = document.querySelector(".btn-pull");
+      const updateBtn = document.querySelector(".btn-update");
+      const pullText = document.querySelector("#pull-btn-text");
+
+      // Enable/disable buttons based on scrape status
+      if (pullBtn) pullBtn.disabled = isScraping;
+      if (updateBtn) updateBtn.disabled = isScraping;
+
+      // Optional: change Pull button text
+      if (pullText) pullText.textContent = isScraping ? "Pulling Data..." : "Pull Data";
+
+    } catch (e) {
+      // If status check fails, do nothing (keeps current state)
+    }
+  }
+
+// Run once immediately, then poll every 2 seconds
+refreshScrapeStatus();
+setInterval(refreshScrapeStatus, 2000);
+</script>
 </body>
 </html>
