@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grad School Cafe Data Analysis</title>
+    {% if is_scraping %}
+    <meta http-equiv="refresh" content="5">
+    {% endif %}
     <style>
         /* CSS to match the 'Analysis' sample dashboard */
         body {
