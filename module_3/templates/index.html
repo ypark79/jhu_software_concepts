@@ -273,7 +273,8 @@
     </div>
 
 <!--This code block disables both buttons while the scrape/clean pipline
-is running and enables them when it is complete. Also updates the
+is running and enables them when it is complete by calling on the
+app.route for scrape-status. Also updates the
 button text dynamically to inform the user of what is going on. -->
 <script>
   async function refreshScrapeStatus() {

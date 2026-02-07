@@ -209,7 +209,8 @@ def index():
 
 # This code block lets the webpage know if the scrape/clean process
 # is occuring. This lets index.html know whether to disable the
-# buttons while the pipeline is executing.
+# buttons while the pipeline is executing. pol() checks to see
+# if the subprocess is complete.
 @app.route('/scrape-status')
 def scrape_status():
     running = scraping_process is not None and scraping_process.poll() is None
