@@ -33,7 +33,6 @@ def infer_term(date_str, status_str):
         return f"Fall {year}"
 
 
-
 # Convert date entries from strings into Python date objects to enable
 # PostgreSQL compatibility.
 def parse_date(date_str):
@@ -58,15 +57,15 @@ def try_float(value):
 
 
 def main():
-    # Use the centralized utility from db_connection.py to open a session
+    # Use db_connection.py to open a session
     connection = get_connection()
 
     if connection is None:
         print("Database connection failed. Aborting load.")
         return
 
-    # Create the table structure for the database first. Match the field names
-    # and data types with the sample in the assignment.
+    # Create the table structure for the database first. Match the field
+    # names and data types with the sample in the assignment.
     try:
         with connection.cursor() as cur:
             # Create the 'applicants' table schema if it doesn't exist.
@@ -92,6 +91,8 @@ def main():
 
             # TRUNCATE TABLE empties the table of all previous entries.
             # Allows to repopulate the module_3 table with fresh data.
+            # Doing this to assist grader to run program from scratch
+            # and to ensure database and JSON file match.
             cur.execute("TRUNCATE TABLE applicants;")
             print("Table cleared. Starting fresh data load...")
 
@@ -107,14 +108,15 @@ def main():
             # unique IDs to each applicant.
             for p_id, row in enumerate(data, start=1):
                 # Use parameterized query placeholders (%s) to avoid
-                # issues with apostrophes and 'None' values. psycopg automatically
-                # resolves these issues. psychopg automatically fixes apostrophes
-                # and turns None into NULL for SQL insertion. Use 15 placeholders
-                # to match 15 entries.
+                # issues with apostrophes and 'None' values. psycopg
+                # automatically resolves these issues. psychopg automatically
+                # fixes apostrophes and turns None into NULL for
+                # SQL insertion. Use 15 placeholders to match 15 entries.
 
                 sql = """
                     INSERT INTO applicants VALUES (
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+                        %s, %s, %s
                     );
                 """
 

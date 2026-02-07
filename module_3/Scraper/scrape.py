@@ -70,11 +70,11 @@ def extract_text(html_text: str) -> str:
     soup = BeautifulSoup(html_text, "html.parser")
     return soup.get_text(" ").strip()
 
-# ------------------------------------------------------------
+
 # Pull the unique result ID from URLs like:
 # https://www.thegradcafe.com/result/994157
-# We use this to avoid re-scraping the same entry.
-# ------------------------------------------------------------
+# Use this to avoid re-scraping the same entry.
+
 def extract_result_id(url: str):
     if not url:
         return None
@@ -82,10 +82,8 @@ def extract_result_id(url: str):
     return int(match.group(1)) if match else None
 
 
-# ------------------------------------------------------------
 # Convert GradCafe date string (e.g., "January 31, 2026")
 # into a datetime object so we can filter only recent posts.
-# ------------------------------------------------------------
 def parse_date_added(date_string: str):
     if not date_string:
         return None
@@ -94,7 +92,8 @@ def parse_date_added(date_string: str):
     except ValueError:
         return None
 
-TERM_RE = re.compile(r"\b(Spring|Summer|Fall|Autumn|Winter)\s+(20\d{2})\b", re.IGNORECASE)
+TERM_RE = re.compile(r"\b(Spring|Summer|Fall|Autumn|Winter)\s+(20\d{2})\b",
+                     re.IGNORECASE)
 
 def extract_term_from_text(text: str):
     if not text:
@@ -110,10 +109,13 @@ def extract_term_from_text(text: str):
 
 # Infer the term and year due to mod 2 outputs failing to scrape the term
 # field.
-def infer_term_from_row(program_text: str, status_text: str, comments_text: str):
-    combined = f"{program_text or ''} {status_text or ''} {comments_text or ''}"
+def infer_term_from_row(program_text: str, status_text: str,
+                        comments_text: str):
+    combined = (f"{program_text or ''} {status_text or ''} "
+                f"{comments_text or ''}")
 
-    match = re.search(r"\b(Fall|Autumn)\s+(20\d{2})\b", combined, re.IGNORECASE)
+    match = re.search(r"\b(Fall|Autumn)\s+(20\d{2})\b",
+                      combined, re.IGNORECASE)
     if match:
         term = match.group(1).title()
         if term == "Autumn":
@@ -186,6 +188,7 @@ def extract_term_from_detail_row(detail_text: str):
         term = "Fall"
     year = match.group(2)
     return f"{term} {year}"
+
 # Primary data scraper function.
 # Updated to stop scraping when it identifies a results_id that already
 # exists in the original JSON file.
@@ -204,7 +207,7 @@ def scrape_data(page_url: str, existing_ids: set) -> tuple[list[dict], bool]:
         tr = tr_rows[i]
         row = _row_dict_from_tr(tr)
 
-        # If the row has no URL, we cannot scrape the detail page
+        # If the row has no URL,  cannot scrape the detail page
         if row.get("application_url_raw") is None:
             i += 1
             continue
@@ -219,7 +222,7 @@ def scrape_data(page_url: str, existing_ids: set) -> tuple[list[dict], bool]:
             stop_now = True
             break
 
-        # ---- NEW: look at the NEXT tr for detail info ----
+        # Look at the NEXT tr for detail info
         term_found = None
         if i + 1 < len(tr_rows):
             next_tr = tr_rows[i + 1]
@@ -230,7 +233,7 @@ def scrape_data(page_url: str, existing_ids: set) -> tuple[list[dict], bool]:
                 detail_text = next_tds[0].get_text(" ", strip=True)
                 term_found = extract_term_from_detail_row(detail_text)
 
-        # Save it on the row (clean.py can use this later)
+        # Save it on the row
         row["term_inferred"] = term_found
 
         extracted.append(row)

@@ -535,7 +535,7 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
         return 0
 
     # Database connection settings.
-    # These default values work for  local setup,
+    # These default values work for local setup,
     # but environment variables can override them.
     dbname = os.getenv("PGDATABASE", "module_3")
     user = os.getenv("PGUSER", "youngminpark")
@@ -591,14 +591,17 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
     )
     ON CONFLICT (result_id) DO UPDATE SET
     term = COALESCE(applicants.term, EXCLUDED.term),
-    us_or_international = COALESCE(applicants.us_or_international, EXCLUDED.us_or_international),
+    us_or_international = COALESCE(applicants.us_or_international, 
+    EXCLUDED.us_or_international),
     gpa = COALESCE(applicants.gpa, EXCLUDED.gpa),
     gre = COALESCE(applicants.gre, EXCLUDED.gre),
     gre_v = COALESCE(applicants.gre_v, EXCLUDED.gre_v),
     gre_aw = COALESCE(applicants.gre_aw, EXCLUDED.gre_aw),
     degree = COALESCE(applicants.degree, EXCLUDED.degree),
-    llm_generated_program = COALESCE(applicants.llm_generated_program, EXCLUDED.llm_generated_program),
-    llm_generated_university = COALESCE(applicants.llm_generated_university, EXCLUDED.llm_generated_university);
+    llm_generated_program = COALESCE(applicants.llm_generated_program, 
+    EXCLUDED.llm_generated_program),
+    llm_generated_university = COALESCE(applicants.llm_generated_university, 
+    EXCLUDED.llm_generated_university);
     """
 
     inserted = 0
@@ -632,21 +635,23 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
                         "gre_aw": _to_float(r.get("GRE AW")),
                         "degree": r.get("Degree"),
                         "llm_generated_program": r.get("llm-generated-program"),
-                        "llm_generated_university": r.get("llm-generated-university"),
+                        "llm_generated_university": r.get
+                        ("llm-generated-university"),
                     }
 
                     cur.execute(sql, params)
                     inserted += cur.rowcount
 
-                    # ---- ADD THIS PROGRESS PRINT ----
+                    # Progress print.
                     if i % 100 == 0 or i == len(rows):
-                        print(f"Postgres progress: {i}/{len(rows)} rows processed")
+                        print(f"Postgres progress: {i}/{len(rows)} "
+                              f"rows processed")
 
         print(f"Inserted {inserted} new rows into PostgreSQL.")
         return inserted
 
     finally:
-        # Always close connection
+        # Close connection
         conn.close()
 
 def main():
@@ -664,7 +669,7 @@ def main():
     # Keeping original final output for mod_2 just in case.
     save_data(final_rows_no_llm, "applicant_data.json")
 
-    # NEW STEP: push only new rows to database
+    # Push only new rows to database
     insert_rows_into_postgres(final_rows)
 
 
