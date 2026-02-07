@@ -106,7 +106,8 @@ def index():
                 # Answers the query regarding Georgetown, MIT, Stanford, and CMU
                 cur.execute("""
                     SELECT COUNT(*) FROM applicants 
-                    WHERE status ILIKE 'Accepted%2026'
+                    WHERE status ILIKE 'Accepted%'
+                    AND status LIKE '%/2026'
                     AND (llm_generated_program ILIKE '%Computer Science%' AND (llm_generated_program ILIKE '%Ph%d%' OR degree ILIKE 'PhD%'))
                     AND (
                         llm_generated_university ILIKE 'George%Town%' 
@@ -123,7 +124,8 @@ def index():
                 cur.execute("""
                     SELECT COUNT(*)
                     FROM applicants
-                    WHERE status ILIKE 'Accepted%2026'
+                    WHERE status ILIKE 'Accepted%'
+                    AND status LIKE '%/2026'
                     AND (program ILIKE '%Computer Science%' AND (program ILIKE '%Ph%d%' OR program ILIKE '%Doctor%'))
                     AND (
                         program ILIKE '%Georgetown%' 
@@ -148,7 +150,8 @@ def index():
                                 COUNT(*) FILTER (WHERE us_or_international = 'International') AS international_count
                             FROM applicants
                             WHERE (llm_generated_university ILIKE 'John%Hopkins%' OR llm_generated_university ILIKE '%JHU%')
-                            AND status ILIKE 'Accepted%2026';
+                            AND status ILIKE 'Accepted%'
+                            AND status LIKE '%/2026';
                         """)
                 comparison = cur.fetchone()
                 results['jhu_us'] = comparison[0]
@@ -160,7 +163,8 @@ def index():
                             SELECT llm_generated_university, COUNT(*) as acceptance_count
                             FROM applicants
                             WHERE us_or_international = 'International'
-                            AND status ILIKE 'Accepted%2026'
+                            AND status ILIKE 'Accepted%'
+                            AND status LIKE '%/2026'
                             GROUP BY llm_generated_university
                             ORDER BY acceptance_count DESC
                             LIMIT 1;

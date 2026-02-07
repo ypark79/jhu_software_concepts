@@ -121,7 +121,7 @@
         <header>
             <!-- SECOND BUTTON: Update Analysis (Top Right) -->
             <div class="header-actions">
-                <form action="/update-analysis" method="POST">
+                <form action="{{ url_for('update_analysis') }}" method="POST">
                     <!-- The button is disabled if 'is_scraping' is True (sent from app.py) -->
                     <button type="submit" class="btn btn-update" {% if is_scraping %}disabled{% endif %}>Update Analysis</button>
                     <span class="info-text">Refreshes the page to show latest results. Disabled if data pull is active.</span>
@@ -144,7 +144,7 @@
 
         <!-- FIRST BUTTON: Pull Data (User Friendly Explanation) -->
         <div style="margin-bottom: 40px; padding: 15px; background: #f9f9f9; border-left: 5px solid #28a745; border-radius: 4px;">
-            <form action="/pull-data" method="POST">
+            <form action="{{ url_for('pull_data') }}" method="POST">
                 <button type="submit" class="btn btn-pull" {% if is_scraping %}disabled{% endif %}>
                     {% if is_scraping %}Pulling Data...{% else %}Pull Data{% endif %}
                 </button>
