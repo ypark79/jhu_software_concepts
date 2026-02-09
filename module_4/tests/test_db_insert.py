@@ -61,10 +61,9 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
     # Set environment variables in order to use the test DB. This prevents
     # touching the real database.
     monkeypatch.setenv("PGDATABASE", "module_4_db_test")
-    # monkeypatch.setenv("PGUSER", "your_user")
-    # monkeypatch.setenv("PGPASSWORD", "your_password")
-    # monkeypatch.setenv("PGHOST", "localhost")
-    # monkeypatch.setenv("PGPORT", "5432")
+    monkeypatch.setenv("PGUSER", os.getenv("USER"))  
+    monkeypatch.setenv("PGHOST", "localhost")
+    monkeypatch.setenv("PGPORT", "5432")
 
     # Create the Flask app and test client.
     app = create_app()
@@ -79,38 +78,39 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
         port=int(os.getenv("PGPORT", "5432")),
     )
 
-    with conn:
-        with conn.cursor() as cur:
-            # Create test table 
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS applicants_db_test (
-                    p_id SERIAL,
-                    result_id INTEGER PRIMARY KEY,
-                    program TEXT,
-                    comments TEXT,
-                    date_added DATE,
-                    url TEXT,
-                    status TEXT,
-                    term TEXT,
-                    us_or_international TEXT,
-                    gpa FLOAT,
-                    gre FLOAT,
-                    gre_v FLOAT,
-                    gre_aw FLOAT,
-                    degree TEXT,
-                    llm_generated_program TEXT,
-                    llm_generated_university TEXT
-                );
-            """)
-            # Ensure the table is cleared before each test as per the 
-            # assignment instructions. 
-            cur.execute("TRUNCATE TABLE applicants_db_test;")
+  
+    with conn.cursor() as cur:
+        # Create test table 
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS applicants (
+                p_id SERIAL,
+                result_id INTEGER PRIMARY KEY,
+                program TEXT,
+                comments TEXT,
+                date_added DATE,
+                url TEXT,
+                status TEXT,
+                term TEXT,
+                us_or_international TEXT,
+                gpa FLOAT,
+                gre FLOAT,
+                gre_v FLOAT,
+                gre_aw FLOAT,
+                degree TEXT,
+                llm_generated_program TEXT,
+                llm_generated_university TEXT
+            );
+        """)
+        # Ensure the table is cleared before each test as per the 
+        # assignment instructions. 
+        cur.execute("TRUNCATE TABLE applicants;")
+        conn.commit()
 
 
     # Mocks subprocess,Popen so /pull-data inserts fake row directly 
     # into test table
     def fake_popen(*args, **kwargs):
-        insert_rows_into_postgres(fake_rows, table_name="applicants_db_test")
+        insert_rows_into_postgres(fake_rows, table_name="applicants")
         class Dummy:
             def poll(self): return 0
         return Dummy()
@@ -119,28 +119,27 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
 
     # First pull inserts rows
     response = client.post("/pull-data")
-    assert response.status_code == 200
+    assert response.status_code == 200, response.get_json()
 
     # Keeps count of rows in the test table after the first pull.
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM applicants_db_test;")
-            count_after_first = cur.fetchone()[0]
+    
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM applicants;")
+        count_after_first = cur.fetchone()[0]
     assert count_after_first == 1
 
     # Check that all required fields are non-null after the pull. 
     # Select one row of fake data. 
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT
-                    result_id, program, comments, date_added, url, status,
-                    term, us_or_international, gpa, gre, gre_v, gre_aw,
-                    degree, llm_generated_program, llm_generated_university
-                FROM applicants_db_test
-                LIMIT 1;
-            """)
-            row = cur.fetchone()
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT
+                result_id, program, comments, date_added, url, status,
+                term, us_or_international, gpa, gre, gre_v, gre_aw,
+                degree, llm_generated_program, llm_generated_university
+            FROM applicants
+            LIMIT 1;
+        """)
+        row = cur.fetchone()
 
     # Check to ensure none of the fields are NULL
     assert all(value is not None for value in row)
@@ -148,12 +147,12 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
     # Second pull inserts the same fake row again and checks the count
     # to still be 1, which means it was not duplicated. Confirms idempotency.
     response = client.post("/pull-data")
-    assert response.status_code == 200
+    assert response.status_code == 200, response.get_json()
 
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM applicants_db_test;")
-            count_after_second = cur.fetchone()[0]
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM applicants;")
+        count_after_second = cur.fetchone()[0]
     assert count_after_second == 1
 
     conn.close()
@@ -163,6 +162,9 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
 def test_query_returns_expected_keys(monkeypatch):
     # Use test DB env vars
     monkeypatch.setenv("PGDATABASE", "module_4_db_test")
+    monkeypatch.setenv("PGUSER", os.getenv("USER"))  
+    monkeypatch.setenv("PGHOST", "localhost")
+    monkeypatch.setenv("PGPORT", "5432")
 
     # Connect to the test database
     conn = psycopg.connect(
@@ -177,7 +179,7 @@ def test_query_returns_expected_keys(monkeypatch):
         with conn.cursor() as cur:
             # Create test table if it doesn't exist
             cur.execute("""
-                CREATE TABLE IF NOT EXISTS applicants_db_test (
+                CREATE TABLE IF NOT EXISTS applicants (
                     p_id SERIAL,
                     result_id INTEGER PRIMARY KEY,
                     program TEXT,
@@ -197,12 +199,13 @@ def test_query_returns_expected_keys(monkeypatch):
                 );
             """)
             # Clear table 
-            cur.execute("TRUNCATE TABLE applicants_db_test;")
+            cur.execute("TRUNCATE TABLE applicants;")
+            conn.commit()
     conn.close()
 
     # Insert a row so the query has something to return
     def fake_popen(*args, **kwargs):
-        insert_rows_into_postgres(fake_rows, table_name="applicants_db_test")
+        insert_rows_into_postgres(fake_rows, table_name="applicants")
         class Dummy:
             def poll(self): return 0
         return Dummy()
@@ -216,7 +219,7 @@ def test_query_returns_expected_keys(monkeypatch):
     # as a dict with the required keys.
     from query_data import get_sample_applicant_dict
 
-    data = get_sample_applicant_dict(table_name="applicants_db_test")
+    data = get_sample_applicant_dict(table_name="applicants")
 
     # Ensure the dict is returned as expected.
     assert isinstance(data, dict)
