@@ -23,3 +23,6 @@ applicant_data_checkpoint.json
 # Allow assignment master JSON files
 !module_3/Data/llm_extend_applicant_data.json
 !module_3/Scraper/llm_extend_applicant_data.json
+# Allow module_4 JSON outputs
+!module_4/src/Data/llm_extend_applicant_data.json
+!module_4/src/Scraper/llm_extend_applicant_data.json
