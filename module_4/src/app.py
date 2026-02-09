@@ -249,6 +249,7 @@ def create_app():
         # Otherwise, allow update
         return jsonify({"ok": True})
 
+    return app
 
 if __name__ == '__main__':
     app = create_app()
