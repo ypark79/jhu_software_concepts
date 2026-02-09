@@ -1,22 +1,27 @@
+import os
 import psycopg
 
-# Establish and return a connection to the PostgreSQL database "module_3"
+# Establish and return a connection to PostgreSQL.
+# Uses environment variables so tests can point to a test DB.
 def get_connection():
-
-    database_name = "module_3"
+    # Use environment variables so tests can point to a the test database.
+    database_name = os.getenv("PGDATABASE", "module_3")
+    host = os.getenv("PGHOST", "localhost")
+    user = os.getenv("PGUSER", None)
+    password = os.getenv("PGPASSWORD", None)
+    port = int(os.getenv("PGPORT", "5432"))
 
     try:
         # Create a connection to the local PostgreSQL server
-        # psycopg.connect() is the standard method for opening a session
         conn = psycopg.connect(
             dbname=database_name,
-            host="localhost"
+            host=host,
+            user=user,
+            password=password,
+            port=port
         )
         return conn
     except Exception as e:
-        # If the database server is not running or credentials are wrong,
-        # this will print a helpful error instead of crashing the program.
-        print(f"Error: Unable to connect to the database "
-              f"'{database_name}'.")
+        print(f"Error: Unable to connect to the database '{database_name}'.")
         print(f"Details: {e}")
         return None

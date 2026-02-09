@@ -279,6 +279,52 @@ def main():
 
     connection.close()
 
+# This is a test helper function to return one row as a dict with 
+# the required keys. This will facilitate the test in test_db_insert.py.
+def get_sample_applicant_dict(table_name="applicants_db_test"):
+    # Use the shared DB connection helper
+    connection = get_connection()
+    if connection is None:
+        return None
+
+    with connection.cursor() as cur:
+        # Execute the query to return one row with the required keys.
+        cur.execute(f"""
+            SELECT 
+                p_id, result_id, program, comments, date_added, url, status,
+                term, us_or_international, gpa, gre, gre_v, gre_aw, degree,
+                llm_generated_program, llm_generated_university
+            FROM {table_name}
+            LIMIT 1;
+        """)
+
+        row = cur.fetchone()
+
+    # Close the connection to the test database.
+    connection.close()
+
+    if row is None:
+        return None
+
+    # Build and return a dict with the required keys
+    return {
+        "p_id": row[0],
+        "result_id": row[1],
+        "program": row[2],
+        "comments": row[3],
+        "date_added": row[4],
+        "url": row[5],
+        "status": row[6],
+        "term": row[7],
+        "us_or_international": row[8],
+        "gpa": row[9],
+        "gre": row[10],
+        "gre_v": row[11],
+        "gre_aw": row[12],
+        "degree": row[13],
+        "llm_generated_program": row[14],
+        "llm_generated_university": row[15],
+    }
 
 if __name__ == "__main__":
     main()
