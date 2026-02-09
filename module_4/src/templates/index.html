@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grad School Cafe Data Analysis</title>
+    <style>
+        /* CSS to match the 'Analysis' sample dashboard */
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+        }
+
+        header {
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+        }
+
+        .project-title {
+            font-size: 12px;
+            color: #888;
+            margin: 0;
+            text-transform: capitalize;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 5px 0 0 0;
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            position: relative; /* Allows the Update button to be
+            pinned to the top right */
+        }
+
+        /* Styling for the Update button container */
+        .header-actions {
+            position: absolute;
+            top: 40px;
+            right: 30px;
+            text-align: right;
+        }
+
+        /* Basic styling for our buttons */
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .btn-pull { background-color: #28a745; color: white; }
+        .btn-update { background-color: #007bff; color: white; }
+
+        /* This style applies when a button is disabled (during scraping) */
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* Style for the descriptive information text under buttons */
+        .info-text {
+            font-size: 11px;
+            color: #777;
+            display: block;
+            margin-top: 4px;
+            max-width: 200px;
+            line-height: 1.3;
+        }
+
+        /* Styling for the alert box that shows "flash" messages from
+        Python */
+        .flash-messages {
+            padding: 12px;
+            background-color: #e7f3ff;
+            color: #004085;
+            border: 1px solid #b3d7ff;
+            border-radius: 4px;
+            margin-bottom: 25px;
+        }
+
+        .query-item {
+            margin-bottom: 35px;
+            padding-bottom: 10px;
+        }
+
+        .question {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 17px;
+            line-height: 1.4;
+        }
+
+        .answer {
+            font-style: italic;
+            color: #444;
+            font-size: 16px;
+            display: block;
+            padding-left: 5px;
+        }
+
+        /* Responsive styling */
+        @media (max-width: 600px) {
+            body { padding: 15px; }
+            .container { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <!-- SECOND BUTTON: Update Analysis (Top Right) -->
+            <div class="header-actions">
+                <form action="{{ url_for('update_analysis') }}" method="POST">
+                    <!-- The button is disabled if 'is_scraping' is True
+                    (sent from app.py) -->
+                    <button type="submit" class="btn btn-update"
+                            {% if is_scraping %}disabled{% endif %}>
+                        Update Analysis</button>
+                    <span class="info-text">Refreshes the page to show
+                        latest results. Disabled if data pull is active.</span>
+                </form>
+            </div>
+            <p class="project-title">Grad School Cafe Data Analysis</p>
+            <h1>Analysis</h1>
+        </header>
+
+        <!-- Notification section: shows messages like
+        "Data pull started!" -->
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash-messages">
+              {% for message in messages %}
+                <div>{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- FIRST BUTTON: Pull Data (User Friendly Explanation) -->
+        <div style="margin-bottom: 40px; padding: 15px; background: #f9f9f9;
+        border-left: 5px solid #28a745; border-radius: 4px;">
+            <form action="{{ url_for('pull_data') }}" method="POST">
+                <button type="submit" class="btn btn-pull"
+                    {% if is_scraping %}disabled{% endif %}>
+                    <span id="pull-btn-text">
+                    {% if is_scraping %}Pulling Data...{% else %}Pull Data{% endif %}
+                    </span>
+                </button>
+                <p class="info-text" style="max-width: 100%;">
+                    Clicking this will download new records from Grad Cafe,
+                    clean them with the LLM formatting process,
+                    and add them to the database. This runs in the background.
+                </p>
+            </form>
+        </div>
+
+
+        <!-- Question 1 -->
+        <div class="query-item">
+            <span class="question">How many entries do you have in your
+                database who have applied for Fall 2026?</span>
+            <span class="answer">Answer: Applicant count:
+                {{ data.count_2026 }}</span>
+        </div>
+
+        <!-- Question 2 -->
+        <div class="query-item">
+            <span class="question">What percentage of entries are from
+                international students (not American or Other)
+                (to two decimal places)?</span>
+            <span class="answer">Answer: Percent International:
+                {{ data.pct_intl }}%</span>
+        </div>
+
+        <!-- Question 3 -->
+        <div class="query-item">
+            <span class="question">What is the average GPA, GRE, GRE V,
+                GRE AW of applicants who provide these metrics?</span>
+            <span class="answer">
+                Answer: Average GPA: {{ data.avg_gpa }}, Average GRE:
+                {{ data.avg_gre }},
+                Average GRE V: {{ data.avg_gre_v }}, Average GRE AW:
+                {{ data.avg_gre_aw }}
+            </span>
+        </div>
+
+        <!-- Question 4 -->
+        <div class="query-item">
+            <span class="question">What is the average GPA of American
+                students in Fall 2026?</span>
+            <span class="answer">Answer: Average GPA American:
+                {{ data.avg_gpa_us }}</span>
+        </div>
+
+        <!-- Question 5 -->
+        <div class="query-item">
+            <span class="question">What percent of entries for Fall 2025
+                are Acceptances (to two decimal places)?</span>
+            <span class="answer">Answer: Acceptance percent:
+                {{ data.pct_accept_2025 }}%</span>
+        </div>
+
+        <!-- Question 6 -->
+        <div class="query-item">
+            <span class="question">What is the average GPA of applicants
+                who applied for Fall 2026 who are Acceptances?</span>
+            <span class="answer">Answer: Average GPA Acceptance:
+                {{ data.avg_gpa_accept_2026 }}</span>
+        </div>
+
+        <!-- Question 7 -->
+        <div class="query-item">
+            <span class="question">How many entries are from applicants
+                who applied to JHU for a masters degrees in Computer
+                Science?</span>
+            <span class="answer">Answer: JHU CS Masters Count:
+                {{ data.jhu_cs_count }}</span>
+        </div>
+
+        <!-- Question 8 -->
+        <div class="query-item">
+            <span class="question">How many entries from 2026 are acceptances
+                from applicants who applied to Georgetown University, MIT,
+                Stanford University, or Carnegie Mellon University for a
+                PhD in Computer Science?</span>
+            <span class="answer">Answer: PhD Count: {{ data.top_phd_count }}
+            </span>
+        </div>
+
+        <!-- Question 9: -->
+        <div class="query-item">
+            <span class="question">Do your numbers for question 8 change if
+                you use LLM Generated Fields (rather than your downloaded fields)?</span>
+            <span class="answer">
+                Answer: The comparison resulted in a difference of
+                {{ data.phd_difference }} entries
+                (Original Fields: {{ data.orig_phd_count }},
+                LLM Fields: {{ data.top_phd_count }}).
+            </span>
+        </div>
+
+
+        <!-- Self-Generated Question 1 -->
+        <div class="query-item">
+            <span class="question">How many US American students
+                versus International students were accepted to
+                JHU in 2026?</span>
+            <span class="answer">Answer: American: {{ data.jhu_us }},
+                International: {{ data.jhu_intl }}</span>
+        </div>
+
+        <!-- Self-Generated Question 2 -->
+        <div class="query-item">
+            <span class="question">Which university accepted the most
+                international students in 2026?</span>
+            <span class="answer">Answer: {{ data.top_intl_uni }} with
+                {{ data.top_intl_count }} acceptances.</span>
+        </div>
+
+    </div>
+
+<!--This code block disables both buttons while the scrape/clean pipline
+is running and enables them when it is complete by calling on the
+app.route for scrape-status. Also updates the
+button text dynamically to inform the user of what is going on. -->
+<script>
+  async function refreshScrapeStatus() {
+    try {
+      const res = await fetch("/scrape-status");
+      const data = await res.json();
+
+      const isScraping = data.is_scraping;
+
+      const pullBtn = document.querySelector(".btn-pull");
+      const updateBtn = document.querySelector(".btn-update");
+      const pullText = document.querySelector("#pull-btn-text");
+
+      // Enable/disable buttons based on scrape status
+      if (pullBtn) pullBtn.disabled = isScraping;
+      if (updateBtn) updateBtn.disabled = isScraping;
+
+      // Optional: change Pull button text
+      if (pullText) pullText.textContent = isScraping ? "Pulling Data..." : "Pull Data";
+
+    } catch (e) {
+      // If status check fails, do nothing (keeps current state)
+    }
+  }
+
+// Run once immediately, then poll every 2 seconds
+refreshScrapeStatus();
+setInterval(refreshScrapeStatus, 2000);
+</script>
+</body>
+</html>
