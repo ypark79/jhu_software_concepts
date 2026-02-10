@@ -22,27 +22,30 @@ def test_pull_data_returns_ok_and_calls_loader(monkeypatch):
     # Create a fake browser to send POST requests. 
     client = app.test_client()
 
-    # Determine if the fake loader was called by tracking the value. 
+    # Determine if the fake loader was called by tracking the value. A false
+    # value means that the loader was not called. 
     called = {"value": False}
 
-    # Fake subprocess.Popen wihtout running the real scraper. Setting
-    # the "value" to True indicates that the loader was called while the 
-    # process is not running.. 
+    # Fake subprocess.Popen without running the real scraper. 
+    # DummyProcess(running=False) means that the process is not running.
+    # called['value'] = True means that the loader was called. Therefore
+    # if the loader was called, the process should not be running. 
     def fake_popen(*args, **kwargs):
         called["value"] = True
         return DummyProcess(running=False)
 
-    # Replace the real subprocess.Popen inside app.py with a fake 
-    # subprocess.Popen. 
+    # Monkeypatch simulates a user running the scraper without
+    # actually running the scraper. Simulates the subprocess.Popen. 
     monkeypatch.setattr("app.subprocess.Popen", fake_popen)
 
-    # Ensure we are not busy
+    # Ensure the process is not running. 
     app.scraping_process = None
 
     # Send POST request to pull-data
     response = client.post("/pull-data")
 
-    # These asserts assume you updated the route to return JSON + 200
+    # Confirms that the POST to the /pull-data route was successful
+    # and the code returned the expected JSON output. 
     assert response.status_code == 200
     assert response.get_json() == {"ok": True}
 

@@ -6,7 +6,6 @@
 # 2) Update analysis (should succeed when not busy)
 # 3) Render analysis page
 # 4) Second pull with overlapping data (should not duplicate)
-
 import os
 import pytest
 import psycopg
