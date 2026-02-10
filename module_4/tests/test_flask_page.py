@@ -33,7 +33,7 @@ def test_get_analysis_page():
     client = app.test_client()
 
     # Send a GET request to the page route
-    response = client.get("/")
+    response = client.get("/analysis")
 
     # Status 200 means success
     assert response.status_code == 200

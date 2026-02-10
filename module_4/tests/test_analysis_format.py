@@ -13,7 +13,7 @@ def test_analysis_has_answer_labels_and_two_decimal_percents():
     client = app.test_client()
 
     # Send request for homepage/analysis page. 
-    response = client.get("/")
+    response = client.get("/analysis")
 
     # Assert page loaded successfully
     assert response.status_code == 200

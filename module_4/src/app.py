@@ -16,7 +16,7 @@ def create_app():
     app.scraping_process = None
 
     # Home route: runs def index() when browser hits home page.
-    @app.route('/')
+    @app.route('/analysis')
     def index():
         # Establish a connection to PostgreSQL database
         connection = get_connection()
