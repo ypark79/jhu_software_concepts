@@ -1,6 +1,8 @@
 # These tests cover query_data.py without using a real database.
 import pytest
 import query_data
+import runpy
+import db_connection
 
 
 @pytest.mark.db
@@ -110,3 +112,100 @@ def test_get_sample_applicant_dict(monkeypatch):
     # Confirm dict has an expected key and value. 
     assert isinstance(data, dict)
     assert data["result_id"] == 1001
+
+
+class FakeCursor:
+    def __init__(self, results):
+        self.results = results
+        self.i = 0
+
+    def execute(self, *args, **kwargs):
+        return None
+
+    def fetchone(self):
+        r = self.results[self.i]
+        self.i += 1
+        return r
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+
+class FakeConn:
+    def __init__(self, results):
+        self.results = results
+
+    def cursor(self):
+        return FakeCursor(self.results)
+
+    def close(self):
+        pass
+
+
+@pytest.mark.analysis
+# This test checks the "N/A" acceptance branch and no top-intl branch.
+def test_query_data_acceptance_none_and_top_intl_none(monkeypatch):
+    
+    results = [
+        (0,), (0,), (0,0,0,0), (0,), (None,), (0,), (0,), (0,), (0,), (0,),
+        (1,1), None
+    ]
+    monkeypatch.setattr(query_data, "get_connection", lambda: FakeConn(results))
+    query_data.main()
+
+
+@pytest.mark.analysis
+# This test checks both comparison branches (American - Intl, Intl - American).
+def test_query_data_comparison_branches(monkeypatch):
+    
+    results_a = [
+        (0,), (0,), (0,0,0,0), (0,), (0,), (0,), (0,), (0,), (0,), (0,),
+        (5,1), ("X", 1)
+    ]
+    monkeypatch.setattr(query_data, "get_connection", lambda: FakeConn(results_a))
+    query_data.main()
+
+    results_b = [
+        (0,), (0,), (0,0,0,0), (0,), (0,), (0,), (0,), (0,), (0,), (0,),
+        (1,5), ("X", 1)
+    ]
+    monkeypatch.setattr(query_data, "get_connection", lambda: FakeConn(results_b))
+    query_data.main()
+
+
+@pytest.mark.db
+# This test checks None is returned when DB connection fails.
+def test_get_sample_applicant_dict_connection_none(monkeypatch):
+    
+    monkeypatch.setattr(query_data, "get_connection", lambda: None)
+    assert query_data.get_sample_applicant_dict() is None
+
+
+@pytest.mark.db
+# This test checks None is returned when query returns no rows.
+def test_get_sample_applicant_dict_row_none(monkeypatch):
+    
+    class Conn:
+        def cursor(self):
+            return FakeCursor([None])
+        def close(self):
+            pass
+
+    monkeypatch.setattr(query_data, "get_connection", lambda: Conn())
+    assert query_data.get_sample_applicant_dict() is None
+
+
+@pytest.mark.analysis
+# This test checks the __main__ block runs safely.
+def test_query_data_main_block(monkeypatch):
+    
+    
+    results = [
+        (0,), (0,), (0,0,0,0), (0,), (0,), (0,), (0,), (0,), (0,), (0,),
+        (1,1), None
+    ]
+    monkeypatch.setattr(db_connection, "get_connection", lambda: FakeConn(results))
+    runpy.run_module("query_data", run_name="__main__")

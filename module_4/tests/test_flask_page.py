@@ -1,7 +1,8 @@
 # These tests check that the Flask page loads and that all routes work
 # so the webpage shows expected content.
 import pytest
-
+import runpy
+import flask.app
 # Import the Flask app
 from app import create_app
 # import BeautifulSoup to parse index.html to test for query asnwer formatting 
@@ -11,6 +12,7 @@ from bs4 import BeautifulSoup
 
 # Mark this test file with "web" marker for pytest.ini. 
 @pytest.mark.web
+# Test that the app has the required routes.
 def test_app_has_required_routes():
     app = create_app()
     # Collect all the route paths registered in Flask
@@ -62,3 +64,86 @@ def test_get_analysis_page():
 
     assert "Pull Data" in html
     assert "Update Analysis" in html
+
+@pytest.mark.web
+# Test that /scrape-status is False when no process is running.
+def test_scrape_status_route_idle():
+    
+    app = create_app()
+    client = app.test_client()
+
+    resp = client.get("/scrape-status")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"is_scraping": False}
+
+
+@pytest.mark.web
+# Test that /scrape-status is True when a process is running.
+def test_scrape_status_route_busy():
+
+    class DummyProcess:
+        def poll(self):
+            return None  # None means "still running"
+
+    app = create_app()
+    app.scraping_process = DummyProcess()
+    client = app.test_client()
+
+    resp = client.get("/scrape-status")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"is_scraping": True}
+
+
+@pytest.mark.buttons
+# This test checks /pull-data returns 500 when subprocess fails.
+def test_pull_data_exception_returns_500(monkeypatch):
+    
+    def fake_popen(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr("app.subprocess.Popen", fake_popen)
+
+    app = create_app()
+    client = app.test_client()
+    resp = client.post("/pull-data")
+
+    assert resp.status_code == 500
+    assert resp.get_json()["ok"] is False
+
+
+@pytest.mark.web
+# This test checks /analysis still renders when DB query fails.
+def test_analysis_handles_db_error(monkeypatch):
+    
+    class BadCursor:
+        def execute(self, *args, **kwargs):
+            raise Exception("db error")
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class BadConn:
+        def cursor(self):
+            return BadCursor()
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr("app.get_connection", lambda: BadConn())
+
+    app = create_app()
+    client = app.test_client()
+    resp = client.get("/analysis")
+
+    assert resp.status_code == 200
+
+
+@pytest.mark.web
+# This test checks the __main__ block runs without starting a real server.
+def test_app_main_block(monkeypatch):
+    
+    monkeypatch.setattr(flask.app.Flask, "run", lambda *a, **k: None)
+    runpy.run_module("app", run_name="__main__")

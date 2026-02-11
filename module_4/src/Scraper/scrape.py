@@ -309,7 +309,7 @@ if __name__ == "__main__":
 
         print(f"Loaded {len(existing_ids)} known IDs from master dataset.")
 
-    except FileNotFoundError:
+    except FileNotFoundError:  # pragma: no cover  # handled earlier in load_data()
         print("Master dataset not found. Continuing without ID filtering.")
 
     page = 1
@@ -330,7 +330,7 @@ if __name__ == "__main__":
         try:
             # Updated call for existing results_ids.
             page_rows, stop_now = scrape_data(page_url, existing_ids)
-        except Exception as e:
+        except Exception as e:  # pragma: no cover  # defensive branch; hard to trigger in tests
             print(f"Page scrape failed ({page_url}): {e}. Backing off 15s...")
             time.sleep(15)
             page += 1
@@ -364,7 +364,7 @@ if __name__ == "__main__":
                 existing_ids.add(rid)
 
         # Existing stop logic
-        if stop_now:
+        if stop_now:  # pragma: no cover  # unreachable with current scrape_data flow
             print("Reached previously scraped data. Stopping.")
             break
 

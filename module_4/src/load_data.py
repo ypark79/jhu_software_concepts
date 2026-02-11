@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from db_connection import get_connection
 
+
 # JSON file was put into a subfolder named Data for organization.
 json_file = "Data/llm_extend_applicant_data.json"
 

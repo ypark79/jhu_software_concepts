@@ -7,6 +7,9 @@ import pytest
 from datetime import date
 import load_data
 import builtins
+import io 
+import runpy
+import db_connection
 
 @pytest.mark.db
 # Test the "infer term" helper function to ensure it returns the correct term
@@ -140,3 +143,97 @@ def test_main_connection_fail(monkeypatch):
 
     # Run main() — should just exit without error
     load_data.main()
+
+
+@pytest.mark.analysis
+# This test checks infer_term uses the year in the status string.
+def test_infer_term_from_status_year():
+    
+    assert load_data.infer_term("January 1, 2025", "Accepted on 01/15/2026") == "Fall 2026"
+
+
+@pytest.mark.analysis
+# This test checks month-based fallback logic.
+def test_infer_term_fallback_months():
+    
+    assert load_data.infer_term("October 1, 2025", None) == "Fall 2026"
+    assert load_data.infer_term("May 1, 2025", None) == "Fall 2025"
+
+
+@pytest.mark.analysis
+# This test checks invalid dates return None.
+def test_infer_term_invalid_date():
+    
+    assert load_data.infer_term("bad date", None) is None
+
+
+@pytest.mark.db
+# This test checks main() rolls back and closes on DB error.
+def test_load_data_main_rollback(monkeypatch):
+    
+    class FakeCursor:
+        def execute(self, *args, **kwargs):
+            raise Exception("db error")
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class FakeConn:
+        def __init__(self):
+            self.rolled_back = False
+            self.closed = False
+
+        def cursor(self):
+            return FakeCursor()
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            self.rolled_back = True
+
+        def close(self):
+            self.closed = True
+
+    conn = FakeConn()
+    monkeypatch.setattr(load_data, "get_connection", lambda: conn)
+
+    load_data.main()
+    assert conn.rolled_back is True
+    assert conn.closed is True
+
+
+@pytest.mark.analysis
+# This test checks the __main__ block runs safely.
+def test_load_data_main_block(monkeypatch):
+    
+    class FakeCursor:
+        def execute(self, *args, **kwargs):
+            return None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class FakeConn:
+        def cursor(self):
+            return FakeCursor()
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(db_connection, "get_connection", lambda: FakeConn())
+    monkeypatch.setattr(builtins, "open", lambda *a, **k: io.StringIO("[]"))
+
+    runpy.run_module("load_data", run_name="__main__")

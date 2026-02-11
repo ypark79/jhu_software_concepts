@@ -1,6 +1,7 @@
 import json
 import pytest
 import Scraper.clean as clean
+import runpy
 
 
 # Test the chunked function to ensure it splits a list into groups 
@@ -88,7 +89,7 @@ def test_text_extractors_from_sample_text():
 def test_extract_term_year_autumn_normalized():
     text = "Autumn 2026"
     assert clean.extract_term_year(text) == "Fall 2026"
-    
+
 
 # Test the text_extractors_none_inputs function to ensure it returns None 
 # if the input is None.
@@ -470,3 +471,124 @@ def test_insert_rows_into_postgres_skips_missing_id(monkeypatch):
 
     inserted = clean.insert_rows_into_postgres(rows)
     assert inserted == 0
+
+
+@pytest.mark.analysis
+# This test checks decision-only branch sets status without date.
+def test_clean_data_decision_only(monkeypatch):
+    
+    def fake_llm_post_rows(llm_url, rows_payload, timeout_s=300):
+        return [{"llm-generated-program": "CS", "llm-generated-university": "Uni"}]
+
+    monkeypatch.setattr(clean, "_llm_post_rows", fake_llm_post_rows)
+
+    raw_rows = [{
+        "result_id": 1,
+        "university_raw": "Uni",
+        "program_raw": "CS",
+        "date_added_raw": "January 31, 2026",
+        "status_raw": None,
+        "comments_raw": None,
+        "application_url_raw": "url",
+        "result_text_raw": "Decision Accepted Notification on ",
+        "term_inferred": None
+    }]
+
+    extracted, final_rows, _ = clean.clean_data(raw_rows)
+    # Final rows still should have status
+    assert final_rows[0]["status"] == "Accepted"
+    
+    # These keys exist only in extracted_fields_raw
+    assert extracted[0]["Accepted: Acceptance Date"] is None
+    assert extracted[0]["Rejected: Rejection Date"] is None
+
+
+@pytest.mark.analysis
+# This test checks rejected branch sets rejection date.
+def test_clean_data_rejected_branch(monkeypatch):
+    
+    def fake_llm_post_rows(llm_url, rows_payload, timeout_s=300):
+        return [{"llm-generated-program": "CS", "llm-generated-university": "Uni"}]
+
+    monkeypatch.setattr(clean, "_llm_post_rows", fake_llm_post_rows)
+
+    raw_rows = [{
+        "result_id": 2,
+        "university_raw": "Uni",
+        "program_raw": "CS",
+        "date_added_raw": "January 31, 2026",
+        "status_raw": None,
+        "comments_raw": None,
+        "application_url_raw": "url",
+        "result_text_raw": "Decision Rejected Notification on 01/02/2024",
+        "term_inferred": None
+    }]
+
+    extracted, final_rows, _ = clean.clean_data(raw_rows)
+
+    # Final rows still should have status
+    assert final_rows[0]["status"] == "Rejected on 01/02/2024"
+
+    # This key is on extracted_fields_raw
+    assert extracted[0]["Rejected: Rejection Date"] == "01/02/2024"
+
+
+@pytest.mark.analysis
+# This test checks program-only, uni-only, and neither cases.
+def test_clean_data_combined_program_branches(monkeypatch):
+    
+    def fake_llm_post_rows(llm_url, rows_payload, timeout_s=300):
+        return [
+            {"llm-generated-program": "CS", "llm-generated-university": None},
+            {"llm-generated-program": None, "llm-generated-university": "Uni"},
+            {"llm-generated-program": None, "llm-generated-university": None},
+        ]
+
+    monkeypatch.setattr(clean, "_llm_post_rows", fake_llm_post_rows)
+
+    raw_rows = [
+        {"result_id": 1, "university_raw": "U1", "program_raw": "P1",
+         "date_added_raw": "", "status_raw": "", "comments_raw": "",
+         "application_url_raw": "", "result_text_raw": "", "term_inferred": None},
+        {"result_id": 2, "university_raw": "U2", "program_raw": "P2",
+         "date_added_raw": "", "status_raw": "", "comments_raw": "",
+         "application_url_raw": "", "result_text_raw": "", "term_inferred": None},
+        {"result_id": 3, "university_raw": "U3", "program_raw": "P3",
+         "date_added_raw": "", "status_raw": "", "comments_raw": "",
+         "application_url_raw": "", "result_text_raw": "", "term_inferred": None},
+    ]
+
+    _, final_rows, _ = clean.clean_data(raw_rows)
+
+    assert final_rows[0]["program"] == "CS"
+    assert final_rows[1]["program"] == "Uni"
+    assert final_rows[2]["program"] is None
+
+
+@pytest.mark.analysis
+# This test checks empty/None inputs return None.
+def test_parse_date_empty_and_to_float_none():
+    
+    assert clean._parse_date("") is None
+    assert clean._to_float(None) is None
+
+
+@pytest.mark.analysis
+# This test checks main() runs without running the real process. 
+def test_clean_main(monkeypatch):
+    
+    monkeypatch.setattr(clean, "load_data", lambda *a, **k: [])
+    monkeypatch.setattr(clean, "clean_data", lambda *a, **k: ([], [], []))
+    monkeypatch.setattr(clean, "append_rows_to_master", lambda *a, **k: [])
+    monkeypatch.setattr(clean, "save_data", lambda *a, **k: None)
+    monkeypatch.setattr(clean, "insert_rows_into_postgres", lambda *a, **k: 0)
+
+    clean.main()
+
+
+@pytest.mark.analysis
+# This test checks the __main__ block runs safely.
+def test_clean_main_block(tmp_path, monkeypatch):
+    
+    monkeypatch.chdir(tmp_path)
+    runpy.run_module("Scraper.clean", run_name="__main__")
