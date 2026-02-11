@@ -61,7 +61,8 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
     # Set environment variables in order to use the test DB. This prevents
     # touching the real database.
     monkeypatch.setenv("PGDATABASE", "module_4_db_test")
-    monkeypatch.setenv("PGUSER", os.getenv("USER"))  
+    monkeypatch.setenv("PGUSER", os.getenv("PGUSER", "postgres"))
+    monkeypatch.setenv("PGPASSWORD", os.getenv("PGPASSWORD", "postgres"))  
     monkeypatch.setenv("PGHOST", "localhost")
     monkeypatch.setenv("PGPORT", "5432")
 
@@ -72,8 +73,8 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
     # Connect to the test database using the environment variables.
     conn = psycopg.connect(
         dbname=os.getenv("PGDATABASE"),
-        user=os.getenv("PGUSER", None),
-        password=os.getenv("PGPASSWORD", None),
+        user=os.getenv("PGUSER", "postgres"),
+        password=os.getenv("PGPASSWORD", "postgres"),
         host=os.getenv("PGHOST", "localhost"),
         port=int(os.getenv("PGPORT", "5432")),
     )
@@ -162,15 +163,16 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
 def test_query_returns_expected_keys(monkeypatch):
     # Use test DB env vars
     monkeypatch.setenv("PGDATABASE", "module_4_db_test")
-    monkeypatch.setenv("PGUSER", os.getenv("USER"))  
+    monkeypatch.setenv("PGUSER", os.getenv("PGUSER", "postgres"))
+    monkeypatch.setenv("PGPASSWORD", os.getenv("PGPASSWORD", "postgres")) 
     monkeypatch.setenv("PGHOST", "localhost")
     monkeypatch.setenv("PGPORT", "5432")
 
     # Connect to the test database
     conn = psycopg.connect(
         dbname=os.getenv("PGDATABASE"),
-        user=os.getenv("PGUSER", None),
-        password=os.getenv("PGPASSWORD", None),
+        user=os.getenv("PGUSER", "postgres"),
+        password=os.getenv("PGPASSWORD", "postgres"),
         host=os.getenv("PGHOST", "localhost"),
         port=int(os.getenv("PGPORT", "5432")),
     )

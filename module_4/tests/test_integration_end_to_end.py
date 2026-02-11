@@ -20,7 +20,8 @@ from Scraper.clean import insert_rows_into_postgres
 def test_end_to_end_pull_update_render(monkeypatch):
     # Use test database to avoid touching real database. 
     monkeypatch.setenv("PGDATABASE", "module_4_db_test")
-    monkeypatch.setenv("PGUSER", os.getenv("USER"))
+    monkeypatch.setenv("PGUSER", os.getenv("PGUSER", "postgres"))
+    monkeypatch.setenv("PGPASSWORD", os.getenv("PGPASSWORD", "postgres"))
     monkeypatch.setenv("PGHOST", "localhost")
     monkeypatch.setenv("PGPORT", "5432")
 
@@ -32,8 +33,8 @@ def test_end_to_end_pull_update_render(monkeypatch):
     # (applicants)
     conn = psycopg.connect(
         dbname=os.getenv("PGDATABASE"),
-        user=os.getenv("PGUSER", None),
-        password=os.getenv("PGPASSWORD", None),
+        user=os.getenv("PGUSER", "postgres"),
+        password=os.getenv("PGPASSWORD", "postgres"),
         host=os.getenv("PGHOST", "localhost"),
         port=int(os.getenv("PGPORT", "5432")),
     )
