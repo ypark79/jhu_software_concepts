@@ -26,4 +26,4 @@ module_4/src/query_data.py          72      0   100%
 --------------------------------------------------------------
 TOTAL                              711      0   100%
 Required test coverage of 100% reached. Total coverage: 100.00%
-93 passed, 6 warnings in 0.61s
+93 passed, 6 warnings in 0.69s
