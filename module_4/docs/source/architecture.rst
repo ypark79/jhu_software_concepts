@@ -2,8 +2,6 @@ Architecture
 ============
 This page explains the Web, ETL, and Database roles and how they connect.
 
-============
-
 This system has three main parts: Web, ETL, and Database.
 
 Web (Flask)
