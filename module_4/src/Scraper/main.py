@@ -1,3 +1,5 @@
+"""Orchestrate the scrape -> clean pipeline with a local LLM server."""
+
 # os manages paths/files, subprocess enables running multiple scripts,
 # sys ensures the use of the current Python interpreter, time used for
 # wait periods, json used to validate output files of the scripts,
@@ -21,6 +23,7 @@ llm_health_url = "http://127.0.0.1:8000/"
 # This function ensure the local LLM starts and stays running in the
 # background.
 def start_llm_server():
+    """Start the local LLM server in the background."""
     # Optimize settings to reduce crashes or overwhelming CPU.
     env = os.environ.copy()
     env["OMP_NUM_THREADS"] = "1"
@@ -34,6 +37,7 @@ def start_llm_server():
 
 # Retries the LLM server until it is up and running.
 def wait_for_llm(timeout_seconds=300):
+    """Poll the LLM health endpoint until ready or timed out."""
 
     start = time.time()
     # Check the time per loop to determine how much time has elapsed.
@@ -51,6 +55,7 @@ def wait_for_llm(timeout_seconds=300):
 
 # Once LLM is running, execute scrape.py.
 def run_scrape():
+    """Run scrape.py as a subprocess and return its exit code."""
     print("Running scrape.py")
     # Pauses main.py until scrape.py is complete.
     result = subprocess.run([sys.executable, scrape_script])
@@ -60,6 +65,7 @@ def run_scrape():
 # Safety measure to ensure that the output of scrape.py
 # exists before moving on.
 def wait_for_file(path, timeout_seconds=300):
+    """Wait for a file to exist within a timeout window."""
     print(f"Waiting for {path} to be created")
     start = time.time()
 
@@ -86,6 +92,7 @@ def json_sanity_check(path):
 
 # Ensures that all python files are executed in the proper order.
 def main():
+    """Run the full pipeline: start LLM, scrape, validate, clean."""
     # Make sure relative paths work no matter where user runs this from.
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)

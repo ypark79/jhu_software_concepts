@@ -1,3 +1,5 @@
+"""Load cleaned JSON data into PostgreSQL."""
+
 import json
 import re
 from datetime import datetime
@@ -11,6 +13,15 @@ json_file = "Data/llm_extend_applicant_data.json"
 # GradCafe entries posted Oct–Feb typically correspond to Fall of the
 # following year; entries posted Mar–Sep correspond to Fall of that year.
 def infer_term(date_str, status_str):
+    """Infer a Fall term from date_added or status strings.
+
+    Args:
+        date_str: Date string like "January 01, 2026".
+        status_str: Status string like "Accepted on 01/15/2026".
+
+    Returns:
+        str or None: Term like "Fall 2026", or None if unknown.
+    """
     # First, try to extract the year from the status field (e.g.,
     # "Accepted on 01/15/2026") since that directly reflects the
     # admission cycle timing.
@@ -37,6 +48,7 @@ def infer_term(date_str, status_str):
 # Convert date entries from strings into Python date objects to enable
 # PostgreSQL compatibility.
 def parse_date(date_str):
+    """Parse a GradCafe date string into a date object."""
 
     if not date_str:
         return None
@@ -48,6 +60,7 @@ def parse_date(date_str):
 # Convert GPA/GRE entries from strings into Python floats to enable
 # PostgreSQL compatibility.
 def try_float(value):
+    """Convert a string to float; return None if invalid."""
 
     if value is None:
         return None
@@ -58,6 +71,7 @@ def try_float(value):
 
 
 def main():
+    """Create the applicants table and load JSON rows into PostgreSQL."""
     # Use db_connection.py to open a session
     connection = get_connection()
 

@@ -1,3 +1,5 @@
+"""Clean scraped GradCafe data and load into JSON/PostgreSQL."""
+
 from urllib.request import urlopen, Request
 import json
 import re
@@ -9,12 +11,14 @@ import psycopg
 # Create batches of data to control volume of data being cleaned.
 # Avoids overwhelming the LLM.
 def chunked(lst, size):
+    """Yield chunks of a list with a fixed size."""
     for i in range(0, len(lst), size):
         yield lst[i:i + size]
 
 # Get rid of unnecessary whitespace and make spacing uniform to avoid
 # issues while parsing.
 def clean_whitespace(text):
+    """Normalize whitespace; return None for None input."""
     if text is None:
         return None
 
@@ -27,6 +31,7 @@ def clean_whitespace(text):
 # unnecessary data around it. Standardize the spacing as well. This avoids
 # issues when the local LLM cleans the Program entries.
 def clean_program_cell(program_text):
+    """Strip extra info from the program cell."""
     if program_text is None:
         return None
 
@@ -51,6 +56,7 @@ def clean_program_cell(program_text):
 # or GPA. If its any form of 0, then it means a score/GPA was not
 # provided.
 def normalize_zero(value):
+    """Convert zero-like strings to None."""
     if value is None:
         return None
 
@@ -63,6 +69,7 @@ def normalize_zero(value):
 # Extract the data from the notes/comments section of each student
 # application.
 def extract_notes(text):
+    """Extract the Notes section from result text."""
     if text is None:
         return None
     # REGEX code to finds the word "Notes" and isolates all data after that
@@ -78,6 +85,7 @@ def extract_notes(text):
 
 # Extract the data for the "Decision" section of each student application.
 def extract_decision(text):
+    """Extract decision text (Accepted/Rejected/etc.)."""
     if text is None:
         return None
     # Find all the "Decision" text and isolate everything after it and
@@ -90,6 +98,7 @@ def extract_decision(text):
 
 # Extract the students' notification_date data.
 def extract_notification_date(text):
+    """Extract notification date in MM/DD/YYYY format."""
     if text is None:
         return None
     # Search for the word "Notification on" and use REGEX code to extract
@@ -103,6 +112,7 @@ def extract_notification_date(text):
 # Search for the word "Degree Type" and standardize the format only
 # allowing letters and periods.
 def extract_degree_type(text):
+    """Extract degree type (e.g., MS, PhD)."""
     if text is None:
         return None
     match = re.search(r"Degree\s+Type\s+([A-Za-z\.]+)", text)
@@ -113,6 +123,7 @@ def extract_degree_type(text):
 # Search for "Degree's Country of Origin" and standardize if to Domestic
 # and Foreign.
 def extract_country_origin(text):
+    """Extract country of origin (Domestic/International)."""
     if text is None:
         return None
     match = re.search(r"Degree's\s+Country\s+of\s+Origin\s+([A-Za-z]+)", text)
@@ -124,6 +135,7 @@ def extract_country_origin(text):
 # Search for Undergrad GPA and extract score.Standardize score to
 # single digit, period, and then one to two digits.
 def extract_undergrad_gpa(text):
+    """Extract undergrad GPA from text."""
     if text is None:
         return None
     match = re.search(r"Undergrad\s+GPA\s+([0-4]\.\d{1,2})", text)
@@ -134,6 +146,7 @@ def extract_undergrad_gpa(text):
 
 # Search for General GRE score and standardize numbering.
 def extract_gre_general(text):
+    """Extract GRE general score from text."""
     if text is None:
         return None
     match = re.search(r"GRE\s+General:\s*([0-9]+)", text)
@@ -144,6 +157,7 @@ def extract_gre_general(text):
 
 # Search for GRE verbal score and standardize numbering.
 def extract_gre_verbal(text):
+    """Extract GRE verbal score from text."""
     if text is None:
         return None
     match = re.search(r"GRE\s+Verbal:\s*([0-9]+)", text)
@@ -155,6 +169,7 @@ def extract_gre_verbal(text):
 # Search GRE Analytical Writing score and standardize numbering to one
 # digit, period, one digit.
 def extract_gre_aw(text):
+    """Extract GRE analytical writing score from text."""
     if text is None:
         return None
     match = re.search(r"Analytical\s+Writing:\s*([0-6](?:\.\d{1,2})?)", text)
@@ -166,6 +181,7 @@ def extract_gre_aw(text):
 # Search for the academic term and year. Standardize with "term" and 4
 # digit year.
 def extract_term_year(text):
+    """Extract term and year, normalizing Autumn to Fall."""
     if text is None:
         return None
     match = re.search(r"\b(Spring|Summer|Fall|Autumn|Winter)\s+"
@@ -181,6 +197,7 @@ def extract_term_year(text):
 # Loads the dirty dataset produced by scrape.py and converts to Python
 # to prepare data to be cleaned.
 def load_data(input_path="raw_scraped_data.json"):
+    """Load raw scraped rows from JSON."""
     try:
         with open(input_path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -193,6 +210,7 @@ def load_data(input_path="raw_scraped_data.json"):
 # Takes final cleaned data set, converts to JSON and writes to the file
 # name as outlined in assignment instructions.
 def save_data(final_rows, output_path):
+    """Save cleaned rows to JSON."""
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(final_rows, f, ensure_ascii=False, indent=2)
 
@@ -204,6 +222,7 @@ def save_data(final_rows, output_path):
 # another chunk
 def _llm_post_rows(llm_url: str, rows_payload: list[dict],
                    timeout_s: int = 300) -> list[dict]:
+    """Send rows to the local LLM and return cleaned results."""
 
     # Prepare payload for LLM as per format expected in app.py.
     # Convert to JSON and then to bytes to send over to LLM.
@@ -248,6 +267,7 @@ def _llm_post_rows(llm_url: str, rows_payload: list[dict],
 # LLM (app.py) to clean, and produces two json outputs.
 def clean_data(extracted_fields_raw,
                llm_url="http://127.0.0.1:8000/standardize"):
+    """Clean raw rows and return cleaned outputs."""
 
     # Standardize formatting by calling clean_whitespace to remove
     # unnecessary whitespace and standardize spacing.
@@ -465,6 +485,7 @@ def clean_data(extracted_fields_raw,
 # into PostgreSQL. If no date is provided, code will return NONE
 # in Python and database will store as NULL.
 def _parse_date(date_str):
+    """Parse a date string into a date; return None if invalid."""
 
     if not date_str:
         return None
@@ -480,6 +501,7 @@ def _parse_date(date_str):
 
 # Convert string numbers into floats.
 def _to_float(x):
+    """Convert to float; return None if invalid."""
 
     if x is None:
         return None
@@ -493,6 +515,7 @@ def _to_float(x):
 # Add newly scraped data to the original master JSON file.
 def append_rows_to_master(new_rows,
                           master_path="llm_extend_applicant_data.json"):
+    """Append new rows to the master JSON file with dedupe."""
 
     master_rows = load_data(master_path)
 
@@ -528,6 +551,7 @@ def append_rows_to_master(new_rows,
 # Only newly acquired rows will get inserted to avoid duplicates.
 
 def insert_rows_into_postgres(rows, table_name="applicants"):
+    """Insert cleaned rows into PostgreSQL with upsert."""
 
     # If there is nothing new to insert, stop early.
     if not rows:
@@ -655,6 +679,7 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
         conn.close()
 
 def main():
+    """Run clean -> append -> save -> insert pipeline."""
     # Clean newly scraped rows
     extracted_fields_raw, final_rows, final_rows_no_llm = clean_data(
         load_data("raw_scraped_data.json")

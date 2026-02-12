@@ -1,3 +1,5 @@
+"""Scrape GradCafe survey pages and extract raw application data."""
+
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError, URLError
 import json
@@ -18,6 +20,7 @@ base_survey_url = f"{base_domain}/survey"
 def _make_request(url: str, accept: str = "text/html,application/xhtml+xml,"
                                           "application/xml;q=0.9,*/*;q="
                                           "0.8") -> Request:
+    """Build a GET Request with browser-like headers."""
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -35,6 +38,7 @@ def _make_request(url: str, accept: str = "text/html,application/xhtml+xml,"
 
 # Download html in bytes and decode into utf-8
 def download_html(url: str) -> str:
+    """Download and decode HTML with retry handling."""
     # Call _make_request function to execute a standardized GET
     req = _make_request(url)
 
@@ -67,6 +71,7 @@ def download_html(url: str) -> str:
 
 # Convert html_text into beautifulsoup object to facilitate parsing.
 def extract_text(html_text: str) -> str:
+    """Return visible text from an HTML page."""
     soup = BeautifulSoup(html_text, "html.parser")
     return soup.get_text(" ").strip()
 
@@ -76,6 +81,7 @@ def extract_text(html_text: str) -> str:
 # Use this to avoid re-scraping the same entry.
 
 def extract_result_id(url: str):
+    """Extract the numeric result_id from a GradCafe result URL."""
     if not url:
         return None
     match = re.search(r"/result/(\d+)", url)
@@ -85,6 +91,7 @@ def extract_result_id(url: str):
 # Convert GradCafe date string (e.g., "January 31, 2026")
 # into a datetime object so we can filter only recent posts.
 def parse_date_added(date_string: str):
+    """Parse a GradCafe date string into a datetime."""
     if not date_string:
         return None
     try:
@@ -96,6 +103,7 @@ TERM_RE = re.compile(r"\b(Spring|Summer|Fall|Autumn|Winter)\s+(20\d{2})\b",
                      re.IGNORECASE)
 
 def extract_term_from_text(text: str):
+    """Find a term like 'Fall 2026' in plain text."""
     if not text:
         return None
     m = TERM_RE.search(text)
@@ -111,6 +119,7 @@ def extract_term_from_text(text: str):
 # field.
 def infer_term_from_row(program_text: str, status_text: str,
                         comments_text: str):
+    """Infer a term from combined program, status, and comments text."""
     combined = (f"{program_text or ''} {status_text or ''} "
                 f"{comments_text or ''}")
 
@@ -128,6 +137,7 @@ def infer_term_from_row(program_text: str, status_text: str,
 # All desired fields exist between <tr> and <td> tags. Ignore the <tr>
 # <td> tags with no data. Pull all data between these tags.
 def _extract_tr_rows_from_html(html_text: str) -> list:
+    """Return <tr> rows that contain <td> cells."""
     soup = BeautifulSoup(html_text, "html.parser")
     rows = []
     for tr in soup.find_all("tr"):
@@ -138,6 +148,7 @@ def _extract_tr_rows_from_html(html_text: str) -> list:
 # Find all data within <td> tags in each <tr> row and clean to extract
 # text.
 def _row_dict_from_tr(tr) -> dict:
+    """Convert one <tr> into a raw row dict."""
     cells = tr.find_all("td")
     td_data = []
     full_url = None
@@ -174,6 +185,7 @@ def _row_dict_from_tr(tr) -> dict:
 
 # Fixing scraper to properly extract term data.
 def extract_term_from_detail_row(detail_text: str):
+    """Extract a term from the detail row text."""
 
     if not detail_text:
         return None
@@ -193,6 +205,7 @@ def extract_term_from_detail_row(detail_text: str):
 # Updated to stop scraping when it identifies a results_id that already
 # exists in the original JSON file.
 def scrape_data(page_url: str, existing_ids: set) -> tuple[list[dict], bool]:
+    """Scrape one survey page and return rows plus a stop flag."""
     html_text = download_html(page_url)
 
     tr_rows = _extract_tr_rows_from_html(html_text)
@@ -261,6 +274,7 @@ def scrape_data(page_url: str, existing_ids: set) -> tuple[list[dict], bool]:
 
 # Convert dirty data into json and write to a file.
 def save_data(data, filename: str) -> None:
+    """Save scraped rows to JSON."""
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -268,6 +282,7 @@ def save_data(data, filename: str) -> None:
 # code to pick up where it left off before the crash to avoid
 # starting from nothing.
 def load_data(filename: str) -> list[dict]:
+    """Load scraped rows from JSON; return [] if missing or invalid."""
     try:
         with open(filename, "r", encoding="utf-8") as f:
             return json.load(f)

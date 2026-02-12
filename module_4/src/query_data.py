@@ -1,6 +1,9 @@
+"""Run analysis queries and print results."""
+
 from db_connection import get_connection
 
 def main():
+    """Execute analysis queries and print results to the console."""
     # Use the centralized utility to open a session
     connection = get_connection()
 
@@ -282,6 +285,14 @@ def main():
 # This is a test helper function to return one row as a dict with 
 # the required keys. This will facilitate the test in test_db_insert.py.
 def get_sample_applicant_dict(table_name="applicants_db_test"):
+    """Return one applicant row as a dict for testing.
+
+    Args:
+        table_name: Name of the table to query.
+
+    Returns:
+        dict or None: One row as a dict, or None if unavailable.
+    """
     # Use the shared DB connection helper
     connection = get_connection()
     if connection is None:

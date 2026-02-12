@@ -1,9 +1,19 @@
+"""Flask web app for Grad Cafe analysis page.
+
+Routes:
+    /analysis        Render the analysis page.
+    /scrape-status   Report whether a scrape is running.
+    /pull-data       Start the scrape/clean pipeline.
+    /update-analysis Allow UI to refresh analysis when idle.
+"""
+
 import subprocess
 import sys
 from flask import Flask, render_template, redirect, url_for, flash, jsonify, make_response
 from db_connection import get_connection
 
 def create_app():
+    """Create and configure the Flask application."""
 
     # Initialize the Flask application.
     app = Flask(__name__)
@@ -18,6 +28,7 @@ def create_app():
     # Home route: runs def index() when browser hits home page.
     @app.route('/analysis')
     def index():
+        """Render the analysis page with current query results."""
         # Establish a connection to PostgreSQL database
         connection = get_connection()
 
@@ -214,12 +225,14 @@ def create_app():
     # if the subprocess is complete.
     @app.route('/scrape-status')
     def scrape_status():
+        """Return JSON indicating whether a scrape is running."""
         running = app.scraping_process is not None and app.scraping_process.poll() is None
         return jsonify({"is_scraping": running})
 
     # Handles the "Pull Data" button click.
     @app.route('/pull-data', methods=['POST'])
     def pull_data():
+        """Start the scraping pipeline unless a run is already active."""
 
         # If a scrape is already running, return a 409 Busy response
         if app.scraping_process is not None and app.scraping_process.poll() is None:
@@ -241,6 +254,7 @@ def create_app():
     # New Route: Handles the "Update Analysis" button click.
     @app.route('/update-analysis', methods=['POST'])
     def update_analysis():
+        """Return OK if not busy; block when a scrape is active."""
 
         # If a scrape is running, block update and return 409 Busy
         if app.scraping_process is not None and app.scraping_process.poll() is None:
