@@ -26,3 +26,5 @@ applicant_data_checkpoint.json
 # Allow module_4 JSON outputs
 !module_4/src/Data/llm_extend_applicant_data.json
 !module_4/src/Scraper/llm_extend_applicant_data.json
+
+module_4/docs/build/
