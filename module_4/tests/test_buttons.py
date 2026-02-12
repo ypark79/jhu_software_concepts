@@ -3,7 +3,8 @@ import pytest
 from app import create_app
 
 
-# Create a fake process object to simulate if the code is running or finished. 
+# Create a fake process object to simulate if the
+# code is running or finished.
 class DummyProcess:
     def __init__(self, running: bool):
         # If running=True, poll() should return None (still running)
@@ -22,8 +23,8 @@ def test_pull_data_returns_ok_and_calls_loader(monkeypatch):
     # Create a fake browser to send POST requests. 
     client = app.test_client()
 
-    # Determine if the fake loader was called by tracking the value. A false
-    # value means that the loader was not called. 
+    # Determine if the fake loader was called by tracking the value.
+    # A false value means that the loader was not called.
     called = {"value": False}
 
     # Fake subprocess.Popen without running the real scraper. 
@@ -54,8 +55,8 @@ def test_pull_data_returns_ok_and_calls_loader(monkeypatch):
 
 
 @pytest.mark.buttons
-# This function will test if the "Update Analysis" button is avaiable to click
-# when the process is not running. 
+# This function will test if the "Update Analysis" button
+# is available to click when the process is not running.
 def test_update_analysis_returns_ok_when_not_busy():
     app = create_app()
     client = app.test_client()
@@ -72,8 +73,8 @@ def test_update_analysis_returns_ok_when_not_busy():
 
 
 @pytest.mark.buttons
-# This test will check if the "Update Analysis" button is disabled when the 
-# process is running. 
+# This test will check if the "Update Analysis" button
+# is disabled when the process is running.
 def test_busy_update_analysis():
     app = create_app()
     client = app.test_client()
@@ -83,8 +84,8 @@ def test_busy_update_analysis():
 
     response = client.post("/update-analysis")
 
-    # Should return a code 409 and the JSON response is {"busy": True} to
-    # to demonstrate no analysis was updated because the process is running. 
+    # Should return 409 and JSON {"busy": True} to
+    # show no analysis was updated while running.
     assert response.status_code == 409
     assert response.get_json() == {"busy": True}
 
@@ -109,8 +110,7 @@ def test_busy_for_pull_data(monkeypatch):
 
     response = client.post("/pull-data")
 
-    # Should return a code 409 and the JSON response is {"busy": True} to
-    # to demonstrate no data was pulled because the process is running. 
-    # 
+    # Should return 409 and JSON {"busy": True} to
+    # show no data was pulled while running.
     assert response.status_code == 409
     assert response.get_json() == {"busy": True}

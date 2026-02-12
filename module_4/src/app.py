@@ -9,7 +9,15 @@ Routes:
 
 import subprocess
 import sys
-from flask import Flask, render_template, redirect, url_for, flash, jsonify, make_response
+from flask import (
+    Flask,
+    render_template,
+    redirect,
+    url_for,
+    flash,
+    jsonify,
+    make_response,
+)
 from db_connection import get_connection
 
 def create_app():
@@ -17,8 +25,8 @@ def create_app():
 
     # Initialize the Flask application.
     app = Flask(__name__)
-    # A secret key is needed to use the 'flash' message system for user
-    # notifications.This will appear on index.html
+    # A secret key is needed to use the flash message system for user
+    # notifications. This will appear on index.html.
     app.secret_key = 'grad_school_assignment_secret_key'
 
     # Global variable to keep track of the scraping process.
@@ -38,16 +46,18 @@ def create_app():
 
         # Check if a scraping process was started and if it is
         # still running (.poll() is None).
-        is_scraping = (app.scraping_process is not None and app.scraping_process.
-                    poll() is None)
+        is_scraping = (
+            app.scraping_process is not None
+            and app.scraping_process.poll() is None
+        )
 
         if connection:
             try:
                 with (connection.cursor() as cur):
 
                     # Query 1: Number of entries for Fall 2026
-                    # We check the term and the status columns for '2026'
-                    # to ensure accuracy.
+                    # We check the term and the status columns for
+                    # '2026' to ensure accuracy.
                     cur.execute("""
                         SELECT COUNT(*) 
                         FROM applicants 
@@ -57,24 +67,31 @@ def create_app():
 
 
                     # Query 2: Percentage of International Students
-                    # Use ::DECIMAL and NULLIF to ensure accurate percentage.
+                    # Use ::DECIMAL and NULLIF to ensure
+                    # accurate percentage.
                     cur.execute("""
                         SELECT ROUND(
-                            (COUNT(*) FILTER (WHERE us_or_international = 'International'))::DECIMAL / 
-                            NULLIF(COUNT(*), 0) * 100, 2
-                        ) FROM applicants;
+                            (
+                                COUNT(*) FILTER (
+                                    WHERE us_or_international = 'International'
+                                )
+                            )::DECIMAL /
+                            NULLIF(COUNT(*), 0) * 100,
+                            2
+                        )
+                        FROM applicants;
                     """)
                     results['pct_intl'] = cur.fetchone()[0]
 
                     # Query 3: Overall GPA and GRE averages.
-                    # Calculate averages for provided metrics and round to two
-                    # decimals.
+                    # Calculate averages for provided metrics and
+                    # round to two decimals.
                     cur.execute("""
-                        SELECT 
-                            ROUND(AVG(gpa)::numeric, 2), 
-                            ROUND(AVG(gre)::numeric, 2), 
-                            ROUND(AVG(gre_v)::numeric, 2), 
-                            ROUND(AVG(gre_aw)::numeric, 2) 
+                        SELECT
+                            ROUND(AVG(gpa)::numeric, 2),
+                            ROUND(AVG(gre)::numeric, 2),
+                            ROUND(AVG(gre_v)::numeric, 2),
+                            ROUND(AVG(gre_aw)::numeric, 2)
                         FROM applicants;
                     """)
                     avg_row = cur.fetchone()
@@ -85,9 +102,12 @@ def create_app():
 
                     # Query 4: Average GPA of US Students in Fall 2026
                     cur.execute("""
-                        SELECT ROUND(AVG(gpa)::numeric, 2) FROM applicants 
-                        WHERE (us_or_international ILIKE 'Amer%' 
-                        OR us_or_international ILIKE 'US%')
+                        SELECT ROUND(AVG(gpa)::numeric, 2)
+                        FROM applicants
+                        WHERE (
+                            us_or_international ILIKE 'Amer%'
+                            OR us_or_international ILIKE 'US%'
+                        )
                         AND term ILIKE '%Fall 2026%';
                     """)
                     results['avg_gpa_us'] = cur.fetchone()[0]
@@ -96,66 +116,93 @@ def create_app():
                     # Query 5: Acceptance Percentage for Fall 2025
                     cur.execute("""
                         SELECT ROUND(
-                            (COUNT(*) FILTER (WHERE term ILIKE '%Fall 2025%' 
-                            AND status ILIKE 'Accepted%'))::DECIMAL / 
-                            NULLIF(COUNT(*) FILTER 
-                            (WHERE term ILIKE '%Fall 2025%'), 0) * 100, 2
-                        ) FROM applicants;
+                            (
+                                COUNT(*) FILTER (
+                                    WHERE term ILIKE '%Fall 2025%'
+                                    AND status ILIKE 'Accepted%'
+                                )
+                            )::DECIMAL /
+                            NULLIF(
+                                COUNT(*) FILTER (
+                                    WHERE term ILIKE '%Fall 2025%'
+                                ),
+                                0
+                            ) * 100,
+                            2
+                        )
+                        FROM applicants;
                     """)
                     results['pct_accept_2025'] = cur.fetchone()[0]
 
 
                     # Query 6: Average GPA of Fall 2026 Acceptances
                     cur.execute("""
-                                SELECT ROUND(AVG(gpa)::numeric, 2) FROM applicants 
-                                WHERE term ILIKE '%Fall 2026%' 
-                                AND status ILIKE 'Accepted%';
-                            """)
+                        SELECT ROUND(AVG(gpa)::numeric, 2)
+                        FROM applicants
+                        WHERE term ILIKE '%Fall 2026%'
+                        AND status ILIKE 'Accepted%';
+                    """)
                     results['avg_gpa_accept_2026'] = cur.fetchone()[0]
 
                     # Query 7: JHU Computer Science Masters Count
                     cur.execute("""
-                        SELECT COUNT(*) FROM applicants 
-                        WHERE (llm_generated_university ILIKE 'John%Hopkins%' 
-                        OR llm_generated_university ILIKE '%JHU%')
+                        SELECT COUNT(*)
+                        FROM applicants
+                        WHERE (
+                            llm_generated_university ILIKE 'John%Hopkins%'
+                            OR llm_generated_university ILIKE '%JHU%'
+                        )
                         AND (degree ILIKE 'Master%' OR degree = 'MS')
                         AND llm_generated_program ILIKE '%Computer Science%';
                     """)
                     results['jhu_cs_count'] = cur.fetchone()[0]
 
-                    # Query 8: Top Tier PhD CS Acceptances
-                    # Answers the query regarding Georgetown, MIT, Stanford, and CMU
+                    # Query 8: Top tier PhD CS acceptances
+                    # Answers the query for Georgetown, MIT, Stanford,
+                    # and CMU
                     cur.execute("""
-                        SELECT COUNT(*) FROM applicants 
+                        SELECT COUNT(*)
+                        FROM applicants
                         WHERE status ILIKE 'Accepted%'
                         AND status LIKE '%/2026'
-                        AND (llm_generated_program ILIKE '%Computer Science%' AND 
-                        (llm_generated_program ILIKE '%Ph%d%' OR degree 
-                        ILIKE 'PhD%'))
                         AND (
-                            llm_generated_university ILIKE 'George%Town%' 
-                            OR llm_generated_university ILIKE 'Stanford%' 
-                            OR llm_generated_university ILIKE '%MIT%' 
-                            OR llm_generated_university ILIKE '%Massachusetts Institute of Technology%'
+                            llm_generated_program ILIKE '%Computer Science%'
+                            AND (
+                                llm_generated_program ILIKE '%Ph%d%'
+                                OR degree ILIKE 'PhD%'
+                            )
+                        )
+                        AND (
+                            llm_generated_university ILIKE 'George%Town%'
+                            OR llm_generated_university ILIKE 'Stanford%'
+                            OR llm_generated_university ILIKE '%MIT%'
+                            OR llm_generated_university ILIKE
+                                '%Massachusetts Institute of Technology%'
                             OR llm_generated_university ILIKE 'Carnegie Mel%n%'
                             OR llm_generated_university ILIKE '%CMU%'
                         );
                     """)
                     results['top_phd_count'] = cur.fetchone()[0]
 
-                    #Query 9: Comparing Orignal vs LLM Generated Data
+                    # Query 9: Comparing original vs LLM generated data
                     cur.execute("""
                         SELECT COUNT(*)
                         FROM applicants
                         WHERE status ILIKE 'Accepted%'
                         AND status LIKE '%/2026'
-                        AND (program ILIKE '%Computer Science%' 
-                        AND (program ILIKE '%Ph%d%' OR program ILIKE '%Doctor%'))
                         AND (
-                            program ILIKE '%Georgetown%' 
-                            OR program ILIKE '%Stanford%' 
+                            program ILIKE '%Computer Science%'
+                            AND (
+                                program ILIKE '%Ph%d%'
+                                OR program ILIKE '%Doctor%'
+                            )
+                        )
+                        AND (
+                            program ILIKE '%Georgetown%'
+                            OR program ILIKE '%Stanford%'
                             OR program ILIKE '%MIT%'
-                            OR program ILIKE '%Massachusetts Institute of Technology%'
+                            OR program ILIKE
+                                '%Massachusetts Institute of Technology%'
                             OR program ILIKE '%Carnegie Mel%n%'
                             OR program ILIKE '%CMU%'
                         );
@@ -165,44 +212,50 @@ def create_app():
                     # Calculate the difference to show the impact of the
                     # LLM cleanup
                     results['phd_difference'] = (
-                            results['top_phd_count'] - results['orig_phd_count']
+                        results['top_phd_count'] - results['orig_phd_count']
                     )
 
 
-                    # Self-Generated Question #1: How many US American students
-                    # versus international students were accepted to JHU in 2026?
+                    # Self-Generated Question #1: How many US American
+                    # vs international students were accepted to JHU
+                    # in 2026?
                     cur.execute("""
-                                SELECT 
-                                    COUNT(*) FILTER (WHERE us_or_international = 
-                                    'American') AS american_count,
-                                    COUNT(*) FILTER (WHERE us_or_international = 
-                                    'International') AS international_count
-                                FROM applicants
-                                WHERE (llm_generated_university 
-                                ILIKE 'John%Hopkins%' OR llm_generated_university 
-                                ILIKE '%JHU%')
-                                AND status ILIKE 'Accepted%'
-                                AND status LIKE '%/2026';
-                            """)
+                        SELECT
+                            COUNT(*) FILTER (
+                                WHERE us_or_international = 'American'
+                            ) AS american_count,
+                            COUNT(*) FILTER (
+                                WHERE us_or_international = 'International'
+                            ) AS international_count
+                        FROM applicants
+                        WHERE (
+                            llm_generated_university ILIKE 'John%Hopkins%'
+                            OR llm_generated_university ILIKE '%JHU%'
+                        )
+                        AND status ILIKE 'Accepted%'
+                        AND status LIKE '%/2026';
+                    """)
                     comparison = cur.fetchone()
                     results['jhu_us'] = comparison[0]
                     results['jhu_intl'] = comparison[1]
 
-                    # Self-Generated Question #2: Which university accepted the most
-                    # international students in 2026?
+                    # Self-Generated Question #2: Which university
+                    # accepted the most international students in 2026?
                     cur.execute("""
-                                SELECT llm_generated_university, 
-                                COUNT(*) as acceptance_count
-                                FROM applicants
-                                WHERE us_or_international = 'International'
-                                AND status ILIKE 'Accepted%'
-                                AND status LIKE '%/2026'
-                                GROUP BY llm_generated_university
-                                ORDER BY acceptance_count DESC
-                                LIMIT 1;
-                            """)
+                        SELECT llm_generated_university,
+                        COUNT(*) as acceptance_count
+                        FROM applicants
+                        WHERE us_or_international = 'International'
+                        AND status ILIKE 'Accepted%'
+                        AND status LIKE '%/2026'
+                        GROUP BY llm_generated_university
+                        ORDER BY acceptance_count DESC
+                        LIMIT 1;
+                    """)
                     top_intl = cur.fetchone()
-                    results['top_intl_uni'] = top_intl[0] if top_intl else "N/A"
+                    results['top_intl_uni'] = (
+                        top_intl[0] if top_intl else "N/A"
+                    )
                     results['top_intl_count'] = top_intl[1] if top_intl else 0
 
             # Handle errors if they occur and print out error code.
@@ -216,8 +269,11 @@ def create_app():
 
             # Pass 'is_scraping' to the HTML template so we
             # can disable buttons in the UI.
-            return render_template('index.html',
-                                data=results, is_scraping=is_scraping)
+            return render_template(
+                'index.html',
+                data=results,
+                is_scraping=is_scraping
+            )
 
     # This code block lets the webpage know if the scrape/clean process
     # is occuring. This lets index.html know whether to disable the
@@ -226,16 +282,22 @@ def create_app():
     @app.route('/scrape-status')
     def scrape_status():
         """Return JSON indicating whether a scrape is running."""
-        running = app.scraping_process is not None and app.scraping_process.poll() is None
+        running = (
+            app.scraping_process is not None
+            and app.scraping_process.poll() is None
+        )
         return jsonify({"is_scraping": running})
 
     # Handles the "Pull Data" button click.
     @app.route('/pull-data', methods=['POST'])
     def pull_data():
-        """Start the scraping pipeline unless a run is already active."""
+        """Start the scraping pipeline unless a run is active."""
 
         # If a scrape is already running, return a 409 Busy response
-        if app.scraping_process is not None and app.scraping_process.poll() is None:
+        if (
+            app.scraping_process is not None
+            and app.scraping_process.poll() is None
+        ):
             return make_response(jsonify({"busy": True}), 409)
 
         # Otherwise, start the scraper
@@ -257,7 +319,10 @@ def create_app():
         """Return OK if not busy; block when a scrape is active."""
 
         # If a scrape is running, block update and return 409 Busy
-        if app.scraping_process is not None and app.scraping_process.poll() is None:
+        if (
+            app.scraping_process is not None
+            and app.scraping_process.poll() is None
+        ):
             return make_response(jsonify({"busy": True}), 409)
 
         # Otherwise, allow update

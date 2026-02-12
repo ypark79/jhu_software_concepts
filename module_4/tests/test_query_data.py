@@ -7,9 +7,8 @@ import db_connection
 
 @pytest.mark.db
 def test_main_success(monkeypatch):
-    # This tests to see if the cursor properly returns the correct values 
-    # for each query. Do this by creating a fake cursor and preloaded 
-    # values for each query. 
+    # This tests if the cursor returns the correct values for each
+    # query. Do this by creating a fake cursor and preloaded values.
     class FakeCursor:
         def __init__(self):
             # Pre-load return values for each query in query_data.main()
@@ -17,8 +16,10 @@ def test_main_success(monkeypatch):
                 (10,),          # Applicant count for Fall 2026
                 (12.34,),       # Percentage of international applicants
                 (3.7, 320, 160, 4.0),  # Average GPA, GRE, GRE V, GRE AW
-                (3.5,),         # Average GPA of US students in Fall 2026
-                (45.67,),       # Percentage of accepted applicants for Fall 2025
+                # Average GPA of US students in Fall 2026
+                (3.5,),
+                # Percentage of accepted applicants for Fall 2025
+                (45.67,),
                 (3.6,),         # Average GPA of Fall 2026 acceptances
                 (20,),          # JHU Computer Science Masters Count
                 (5,),           # Top-tier PhD Count
@@ -35,9 +36,10 @@ def test_main_success(monkeypatch):
            
             pass
 
-        # Execute preloaded fetchone() calls 
+    # Execute preloaded fetchone() calls
         def fetchone(self):
-            # Return the next tuple in order and increment the call counter.
+            # Return the next tuple in order and increment
+            # the call counter.
             result = self.results[self.calls]
             self.calls += 1
             return result
@@ -66,14 +68,14 @@ def test_main_success(monkeypatch):
     fake_conn = FakeConn()
     monkeypatch.setattr(query_data, "get_connection", lambda: fake_conn)
 
-    # Test main() 
+    # Test main()
     query_data.main()
 
     # Ensure connection was closed
     assert fake_conn.closed is True
 
 
-# Test the main function to ensure it exits safely if the connection 
+# Test the main function to ensure it exits safely if the connection
 # to the database fails.
 @pytest.mark.db
 def test_main_connection_fail(monkeypatch):
@@ -82,11 +84,11 @@ def test_main_connection_fail(monkeypatch):
     query_data.main()
 
 
-# This test ensures the get_sample_applicant_dict function returns a dictionary
+# This test ensures get_sample_applicant_dict returns a dictionary
 # with the correct keys and values.
 @pytest.mark.db
 def test_get_sample_applicant_dict(monkeypatch):
-    # Create a fake cursor that returns a preloaded tuple for the fetchone() call.
+    # Create a fake cursor that returns a tuple for fetchone().
     class FakeCursor:
         def execute(self, sql): pass
         def fetchone(self):
@@ -109,7 +111,7 @@ def test_get_sample_applicant_dict(monkeypatch):
     # Test the get_sample_applicant_dict function.
     data = query_data.get_sample_applicant_dict(table_name="applicants")
 
-    # Confirm dict has an expected key and value. 
+    # Confirm dict has an expected key and value.
     assert isinstance(data, dict)
     assert data["result_id"] == 1001
 
@@ -153,26 +155,39 @@ def test_query_data_acceptance_none_and_top_intl_none(monkeypatch):
         (0,), (0,), (0,0,0,0), (0,), (None,), (0,), (0,), (0,), (0,), (0,),
         (1,1), None
     ]
-    monkeypatch.setattr(query_data, "get_connection", lambda: FakeConn(results))
+    monkeypatch.setattr(
+        query_data,
+        "get_connection",
+        lambda: FakeConn(results)
+    )
     query_data.main()
 
 
 @pytest.mark.analysis
-# This test checks both comparison branches (American - Intl, Intl - American).
+# This test checks both comparison branches
+# (American - Intl, Intl - American).
 def test_query_data_comparison_branches(monkeypatch):
     
     results_a = [
         (0,), (0,), (0,0,0,0), (0,), (0,), (0,), (0,), (0,), (0,), (0,),
         (5,1), ("X", 1)
     ]
-    monkeypatch.setattr(query_data, "get_connection", lambda: FakeConn(results_a))
+    monkeypatch.setattr(
+        query_data,
+        "get_connection",
+        lambda: FakeConn(results_a)
+    )
     query_data.main()
 
     results_b = [
         (0,), (0,), (0,0,0,0), (0,), (0,), (0,), (0,), (0,), (0,), (0,),
         (1,5), ("X", 1)
     ]
-    monkeypatch.setattr(query_data, "get_connection", lambda: FakeConn(results_b))
+    monkeypatch.setattr(
+        query_data,
+        "get_connection",
+        lambda: FakeConn(results_b)
+    )
     query_data.main()
 
 
@@ -207,5 +222,9 @@ def test_query_data_main_block(monkeypatch):
         (0,), (0,), (0,0,0,0), (0,), (0,), (0,), (0,), (0,), (0,), (0,),
         (1,1), None
     ]
-    monkeypatch.setattr(db_connection, "get_connection", lambda: FakeConn(results))
+    monkeypatch.setattr(
+        db_connection,
+        "get_connection",
+        lambda: FakeConn(results)
+    )
     runpy.run_module("query_data", run_name="__main__")

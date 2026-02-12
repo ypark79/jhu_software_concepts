@@ -61,7 +61,10 @@ def test_extract_result_id():
     assert scrape.extract_result_id(None) is None
 
     # If URL has /result/123, expect int 123
-    assert scrape.extract_result_id("https://www.thegradcafe.com/result/123") == 123
+    assert (
+        scrape.extract_result_id("https://www.thegradcafe.com/result/123")
+        == 123
+    )
 
     # If URL does not match pattern, expect None
     assert scrape.extract_result_id("https://example.com/nope") is None
@@ -83,7 +86,8 @@ def test_parse_date_added():
     assert scrape.parse_date_added("") is None
 
 
-# Test the extract_term_from_text function to ensure it returns the correct 
+# Test extract_term_from_text returns the correct
+# term from the string.
 # term from the string.
 @pytest.mark.analysis
 def test_extract_term_from_text():
@@ -97,30 +101,40 @@ def test_extract_term_from_text():
     assert scrape.extract_term_from_text(None) is None
 
 
-# Test the infer_term_from_row function to ensure it returns the correct 
+# Test infer_term_from_row returns the correct
+# term from the string.
 # term from the string.
 @pytest.mark.analysis
 def test_infer_term_from_row():
     # infer_term_from_row checks program/status/comments combined
-    term = scrape.infer_term_from_row("Program", "Status", "Admit for Autumn 2027")
+    term = scrape.infer_term_from_row(
+        "Program",
+        "Status",
+        "Admit for Autumn 2027"
+    )
     assert term == "Fall 2027"
 
     # If no term anywhere, returns None
     assert scrape.infer_term_from_row("Program", "Status", "No term") is None
 
 
-# Test the extract_term_from_detail_row function to ensure it returns the correct 
+# Test extract_term_from_detail_row returns the correct
+# term from the string.
 # term from the string.
 @pytest.mark.analysis
 def test_extract_term_from_detail_row():
     # Detail row should detect "Fall 2026"
-    assert scrape.extract_term_from_detail_row("Applied for Fall 2026") == "Fall 2026"
+    assert (
+        scrape.extract_term_from_detail_row("Applied for Fall 2026")
+        == "Fall 2026"
+    )
 
     # Missing or empty detail text returns None
     assert scrape.extract_term_from_detail_row("") is None
 
 
-# Test the extract_tr_rows_from_html function to ensure it returns the correct 
+# Test extract_tr_rows_from_html returns the correct
+# rows from the HTML string.
 # rows from the HTML string.
 @pytest.mark.analysis
 def test_extract_tr_rows_from_html():
@@ -133,7 +147,8 @@ def test_extract_tr_rows_from_html():
 # dictionary from the HTML string.
 @pytest.mark.analysis
 def test_row_dict_from_tr_parses_fields():
-    # Build a BeautifulSoup row so we can test _row_dict_from_tr directly
+    # Build a BeautifulSoup row so we can test
+    # _row_dict_from_tr directly
     soup = BeautifulSoup(SURVEY_PAGE_HTML, "html.parser")
     tr = soup.find_all("tr")[0]
 
@@ -156,7 +171,8 @@ def test_row_dict_from_tr_parses_fields():
 # rows from the HTML string.
 @pytest.mark.analysis
 def test_scrape_data_happy_path(monkeypatch):
-    # This fake function replaces download_html so we never hit the internet.
+    # This fake function replaces download_html so we
+    # never hit the internet.
     def fake_download_html(url):
         # If scraping the page list, return the survey list fixture
         if "survey" in url:
@@ -174,7 +190,10 @@ def test_scrape_data_happy_path(monkeypatch):
     monkeypatch.setattr(scrape.time, "sleep", lambda x: None)
 
     # Run scrape_data with no existing IDs
-    rows, stop_now = scrape.scrape_data("https://www.thegradcafe.com/survey/", set())
+    rows, stop_now = scrape.scrape_data(
+        "https://www.thegradcafe.com/survey/",
+        set()
+    )
 
     # We should get one row
     assert len(rows) == 1
@@ -187,7 +206,8 @@ def test_scrape_data_happy_path(monkeypatch):
     assert rows[0]["result_text_raw"] is not None
 
 
-# Test the scrape_data function to ensure it stops when it encounters an 
+# Test scrape_data stops when it encounters an
+# existing result ID.
 # existing result ID.
 @pytest.mark.analysis
 def test_scrape_data_stops_on_existing_id(monkeypatch):
@@ -198,7 +218,10 @@ def test_scrape_data_stops_on_existing_id(monkeypatch):
     monkeypatch.setattr(scrape.time, "sleep", lambda x: None)
 
     # existing_ids already has 123, so scraper should stop immediately
-    rows, stop_now = scrape.scrape_data("https://www.thegradcafe.com/survey/", {123})
+    rows, stop_now = scrape.scrape_data(
+        "https://www.thegradcafe.com/survey/",
+        {123}
+    )
 
     assert rows == []
     assert stop_now is True
@@ -217,14 +240,18 @@ def test_scrape_data_skips_rows_without_link(monkeypatch):
     monkeypatch.setattr(scrape.time, "sleep", lambda x: None)
 
     # Run scrape_data with no existing IDs
-    rows, stop_now = scrape.scrape_data("https://www.thegradcafe.com/survey/", set())
+    rows, stop_now = scrape.scrape_data(
+        "https://www.thegradcafe.com/survey/",
+        set()
+    )
 
     # No link means no detail URL; row should be skipped
     assert rows == []
     assert stop_now is False
 
 
-# Test the scrape_data function to ensure it sets result_text_raw to None 
+# Test scrape_data sets result_text_raw to None
+# if the detail page fetch fails.
 # if the detail page fetch fails.
 @pytest.mark.analysis
 def test_scrape_data_detail_fetch_error_sets_none(monkeypatch):
@@ -239,7 +266,7 @@ def test_scrape_data_detail_fetch_error_sets_none(monkeypatch):
 
         return ""
 
-    # Use monkeypatch to replace the download_html function with the fake function.
+    # Use monkeypatch to replace download_html with the fake function.
     monkeypatch.setattr(scrape, "download_html", fake_download_html)
     monkeypatch.setattr(scrape.time, "sleep", lambda x: None)
 
@@ -432,7 +459,8 @@ def test_scrape_main_loop_paths(monkeypatch, tmp_path):
 
 
 @pytest.mark.analysis
-# Forces the __main__ loop to stop when it hits an already‑known result_id.
+# Forces the __main__ loop to stop when it hits
+# an already-known result_id.
 def test_scrape_main_loop_stop_now(monkeypatch, tmp_path):
     import io, json, builtins
     monkeypatch.chdir(tmp_path)
@@ -444,7 +472,8 @@ def test_scrape_main_loop_stop_now(monkeypatch, tmp_path):
         return io.StringIO()
     monkeypatch.setattr(builtins, "open", fake_open)
 
-    # List page HTML contains /result/123, so scrape_data sets stop_now True
+    # List page HTML contains /result/123, so scrape_data
+    # sets stop_now True
     class FakeResp:
         def read(self):
             return b"""
@@ -480,7 +509,13 @@ def test_scrape_main_loop_error_path(monkeypatch, tmp_path):
 
         if calls["n"] < 5:
             calls["n"] += 1
-            raise HTTPError(req.full_url, 500, "Server Error", hdrs=None, fp=None)
+            raise HTTPError(
+                req.full_url,
+                500,
+                "Server Error",
+                hdrs=None,
+                fp=None
+            )
         return FakeResp()
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
@@ -489,7 +524,8 @@ def test_scrape_main_loop_error_path(monkeypatch, tmp_path):
     runpy.run_module("Scraper.scrape", run_name="__main__")
 
 @pytest.mark.analysis
-# Runs the scraper __main__ loop through a non‑empty page, then empty pages
+# Runs the scraper __main__ loop through a non-empty page,
+# then empty pages to hit the main success path and early exit.
 # to hit the main success path and early exit.
 def test_scrape_main_loop_non_empty_then_empty(monkeypatch, tmp_path):
     
@@ -561,7 +597,13 @@ def test_scrape_main_loop_error_path(monkeypatch, tmp_path):
 
         if calls["n"] == 0:
             calls["n"] += 1
-            raise HTTPError(req.full_url, 500, "Server Error", hdrs=None, fp=None)
+            raise HTTPError(
+                req.full_url,
+                500,
+                "Server Error",
+                hdrs=None,
+                fp=None
+            )
         return FakeResp()
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)

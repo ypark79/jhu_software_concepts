@@ -5,8 +5,8 @@ import runpy
 import flask.app
 # Import the Flask app
 from app import create_app
-# import BeautifulSoup to parse index.html to test for query asnwer formatting 
-# and for the two buttons. 
+# import BeautifulSoup to parse index.html and test query
+# answer formatting and the two buttons.
 from bs4 import BeautifulSoup
 
 
@@ -29,7 +29,8 @@ def test_app_has_required_routes():
 # Test flask page that displays analysis results
 @pytest.mark.web
 def test_get_analysis_page():
-    # Create flask app object andfake web browser to test GET/POST requests 
+    # Create flask app object and fake web browser to
+    # test GET/POST requests.
     # without opening an actual browser. 
     app = create_app()
 
@@ -41,13 +42,15 @@ def test_get_analysis_page():
 
     assert response.status_code == 200
 
-    # Convert HTML response into text and convert to a BeautifulSoup object
+    # Convert HTML response into text and convert to
+    # a BeautifulSoup object.
     # to faciltiate text parsing. 
     html = response.get_data(as_text=True)
 
     soup = BeautifulSoup(html, "html.parser")
 
-    # Look for the form that submits to /pull-data and /update-analysis. 
+    # Look for the form that submits to /pull-data
+    # and /update-analysis.
     # Confirm the two buttons exist. 
     pull_form = soup.find("form", {"action": "/pull-data"})
 
@@ -57,7 +60,7 @@ def test_get_analysis_page():
 
     assert update_form is not None
 
-    # Check query results contains the word "analysis" and "answer". Secondary
+    # Check query results contains the word "analysis" and "answer".
     # check for the two buttons by checking their text labels. 
     assert "Analysis" in html
     assert "Answer:" in html
@@ -142,7 +145,8 @@ def test_analysis_handles_db_error(monkeypatch):
 
 
 @pytest.mark.web
-# This test checks the __main__ block runs without starting a real server.
+# This test checks the __main__ block runs without
+# starting a real server.
 def test_app_main_block(monkeypatch):
     
     monkeypatch.setattr(flask.app.Flask, "run", lambda *a, **k: None)

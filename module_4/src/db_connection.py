@@ -9,9 +9,10 @@ def get_connection():
     """Return a psycopg connection using environment variables.
 
     Returns:
-        connection or None: A live database connection or None on failure.
+        connection or None: A live database connection or None
+            on failure.
     """
-    # Use environment variables so tests can point to a the test database.
+    # Use environment variables so tests can point to the test database.
     database_name = os.getenv("PGDATABASE", "module_3")
     host = os.getenv("PGHOST", "localhost")
     user = os.getenv("PGUSER", None)

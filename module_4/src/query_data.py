@@ -40,11 +40,13 @@ def main():
         percentage = cur.fetchone()
         print(f"Percentage of international applicants: {percentage[0]}%")
 
-        # Average GPA, GRE, GRE V, and GRE AW for those who provided this
+        # Average GPA, GRE, GRE V, and GRE AW for those who
+        # provided this data.
         # data. For those that did not, load_data.py ensured that empty
         # fields returned "NULL" for SQL.
         #
-        # SQL AVG excludes NULL values, so AVG calculates the average of all
+        # SQL AVG excludes NULL values, so AVG calculates the average
+        # of all provided scores.
         # provided GPA/GRE scores. "::numeric" and ROUND are utilized to
         # ensure the averages are rounded to two decimal places.
         cur.execute("""
@@ -66,9 +68,9 @@ def main():
 
         # Average GPA of Fall 2026 American Students
         # Must filter out American students and application term.
-        # The prompt does not specify, but assumption is to round the average
-        # to two decimals using ROUND. However, ROUND will not work with a
-        # FLOAT. "::numeric" converts the float to a decimal to enable ROUND.
+        # The prompt does not specify, but we round the average to
+        # two decimals using ROUND. ROUND will not work with a
+        # FLOAT. "::numeric" converts the float to a decimal.
         # Add 'US' check and variations of the 2026 term.
         cur.execute("""
             SELECT ROUND(AVG(gpa)::numeric, 2)
@@ -83,21 +85,30 @@ def main():
 
 
         # Percentage of Acceptances for the Fall 2025 term.
-        # Numerator: Count rows where the term is 'Fall 2025' AND the status
+        # Numerator: Count rows where term is 'Fall 2025' AND
+        # status contains 'Accepted'.
         # contains 'Accepted'. ILIKE accounts for case insensitivity.
         #
         # Denominator: Total count of all entries for 'Fall 2025'.
-        # NULLIF prevents a crash by returning NULL if no Fall 2025 entries
-        # exist. Same use of ROUND and ::DECIMAL to enable decimal division.
+        # NULLIF prevents a crash by returning NULL if no Fall 2025
+        # entries exist. ROUND and ::DECIMAL enable decimal division.
         cur.execute("""
-                   SELECT
-                       ROUND(
-                           (COUNT(*) FILTER (WHERE term ILIKE '%Fall 2025%' 
-                           AND status ILIKE 'Accepted%'))::DECIMAL / 
-                           NULLIF(COUNT(*) FILTER (WHERE term ILIKE '%Fall 2025%'), 0) * 100, 2
-                       )
-                   FROM applicants;
-               """)
+            SELECT
+                ROUND(
+                    (
+                        COUNT(*) FILTER (
+                            WHERE term ILIKE '%Fall 2025%'
+                            AND status ILIKE 'Accepted%'
+                        )
+                    )::DECIMAL /
+                    NULLIF(
+                        COUNT(*) FILTER (WHERE term ILIKE '%Fall 2025%'),
+                        0
+                    ) * 100,
+                    2
+                )
+            FROM applicants;
+        """)
 
         acceptance_rate_2025 = cur.fetchone()
 
@@ -134,8 +145,10 @@ def main():
         cur.execute("""
             SELECT COUNT(*)
             FROM applicants
-            WHERE (llm_generated_university ILIKE 'John%Hopkins%' OR 
-            llm_generated_university ILIKE '%JHU%')
+            WHERE (
+                llm_generated_university ILIKE 'John%Hopkins%'
+                OR llm_generated_university ILIKE '%JHU%'
+            )
             AND (degree ILIKE 'Master%' OR degree = 'MS')
             AND llm_generated_program ILIKE '%Computer Science%';
         """)
@@ -144,73 +157,86 @@ def main():
               f"{jhu_cs_masters_count[0]}")
 
 
-        # Number of applicants from 2026 that were accepted to Georgetown,
+        # Number of applicants from 2026 accepted to Georgetown,
         # MIT, Stanford, or CMU for a PhD in Computer Science.
         #
         # Status ILIKE 'Accepted%2026': Targets 2026 acceptances since
         # 'term' is null. Program: Checks for 'Computer Science' and
-        # 'Phd' within the same string. Check for variations of CMU and MIT.
+        # 'Phd' within the same string. Check variations of CMU and MIT.
         cur.execute("""
-                   SELECT COUNT(*)
-                   FROM applicants
-                   WHERE status ILIKE 'Accepted%'
-                   AND status LIKE '%/2026'
-                   AND (llm_generated_program ILIKE '%Computer Science%' AND
-                    (llm_generated_program ILIKE '%Ph%d%' OR degree ILIKE 'PhD%'))
-                   AND (
-                       llm_generated_university ILIKE 'George%Town%' 
-                       OR llm_generated_university ILIKE 'Stanford%' 
-                       OR llm_generated_university ILIKE '%MIT%'
-                       OR llm_generated_university ILIKE '%Massachusetts Institute of Technology%'
-                       OR llm_generated_university ILIKE 'Carnegie Mel%n%'
-                       OR llm_generated_university ILIKE '%CMU%'
-                   );
-               """)
+            SELECT COUNT(*)
+            FROM applicants
+            WHERE status ILIKE 'Accepted%'
+            AND status LIKE '%/2026'
+            AND (
+                llm_generated_program ILIKE '%Computer Science%'
+                AND (
+                    llm_generated_program ILIKE '%Ph%d%'
+                    OR degree ILIKE 'PhD%'
+                )
+            )
+            AND (
+                llm_generated_university ILIKE 'George%Town%'
+                OR llm_generated_university ILIKE 'Stanford%'
+                OR llm_generated_university ILIKE '%MIT%'
+                OR llm_generated_university ILIKE
+                    '%Massachusetts Institute of Technology%'
+                OR llm_generated_university ILIKE 'Carnegie Mel%n%'
+                OR llm_generated_university ILIKE '%CMU%'
+            );
+        """)
         top_tier_phd_count = cur.fetchone()
         print(f"Number of 2026 PhD CS acceptances "
               f"(GTown, MIT, Stanford, CMU): {top_tier_phd_count[0]}")
 
         # Answer to question 9 in assignment. First test: run the query
-        # searching the "program" field from the original data. Second Test
-        # will run the search on the llm_generated_program/unversity fields.
+        # searching the "program" field from the original data.
+        # Second test runs on llm_generated_program/university fields.
         # Here is the first test searching original data.
         cur.execute("""
-                    SELECT COUNT(*)
-                    FROM applicants
-                    WHERE status ILIKE 'Accepted%'
-                    AND status LIKE '%/2026'
-                    AND (program ILIKE '%Computer Science%' AND (program 
-                    ILIKE '%Ph%d%' OR program ILIKE '%Doctor%'))
-                    AND (
-                        program ILIKE '%Georgetown%' 
-                        OR program ILIKE '%Stanford%' 
-                        OR program ILIKE '%MIT%'
-                        OR program ILIKE '%Massachusetts Institute of Technology%'
-                        OR program ILIKE '%Carnegie Mell%n%'
-                        OR program ILIKE '%CMU%'
-                    );
-                """)
+            SELECT COUNT(*)
+            FROM applicants
+            WHERE status ILIKE 'Accepted%'
+            AND status LIKE '%/2026'
+            AND (
+                program ILIKE '%Computer Science%'
+                AND (program ILIKE '%Ph%d%' OR program ILIKE '%Doctor%')
+            )
+            AND (
+                program ILIKE '%Georgetown%'
+                OR program ILIKE '%Stanford%'
+                OR program ILIKE '%MIT%'
+                OR program ILIKE '%Massachusetts Institute of Technology%'
+                OR program ILIKE '%Carnegie Mell%n%'
+                OR program ILIKE '%CMU%'
+            );
+        """)
         original_fields_count = cur.fetchone()[0]
 
         # Here is the second test searching the llm_generated_program
         # and llm_generated_university fields.
         cur.execute("""
-                    SELECT COUNT(*)
-                    FROM applicants
-                    WHERE status ILIKE 'Accepted%'
-                    AND status LIKE '%/2026'
-                    AND (llm_generated_program ILIKE '%Computer Science%' 
-                    AND (llm_generated_program ILIKE '%Ph%d%' OR degree 
-                    ILIKE 'PhD%'))
-                    AND (
-                        llm_generated_university ILIKE 'George%Town%' 
-                        OR llm_generated_university ILIKE 'Stanford%' 
-                        OR llm_generated_university ILIKE '%MIT%'
-                        OR llm_generated_university ILIKE '%Massachusetts Institute of Technology%'
-                        OR llm_generated_university ILIKE 'Carnegie Mel%n%'
-                        OR llm_generated_university ILIKE '%CMU%'
-                    );
-                """)
+            SELECT COUNT(*)
+            FROM applicants
+            WHERE status ILIKE 'Accepted%'
+            AND status LIKE '%/2026'
+            AND (
+                llm_generated_program ILIKE '%Computer Science%'
+                AND (
+                    llm_generated_program ILIKE '%Ph%d%'
+                    OR degree ILIKE 'PhD%'
+                )
+            )
+            AND (
+                llm_generated_university ILIKE 'George%Town%'
+                OR llm_generated_university ILIKE 'Stanford%'
+                OR llm_generated_university ILIKE '%MIT%'
+                OR llm_generated_university ILIKE
+                    '%Massachusetts Institute of Technology%'
+                OR llm_generated_university ILIKE 'Carnegie Mel%n%'
+                OR llm_generated_university ILIKE '%CMU%'
+            );
+        """)
         llm_fields_count = cur.fetchone()[0]
 
         # Print results and the difference.

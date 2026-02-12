@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Flask + tiny local LLM standardizer with incremental JSONL CLI output."""
+"""Flask + tiny local LLM standardizer.
+
+Includes incremental JSONL CLI output.
+"""
 
 from __future__ import annotations
 
@@ -33,7 +36,8 @@ N_GPU_LAYERS = int(os.getenv("N_GPU_LAYERS", "0"))  # 0 → CPU-only
 CANON_UNIS_PATH = os.getenv("CANON_UNIS_PATH", "canon_universities.txt")
 CANON_PROGS_PATH = os.getenv("CANON_PROGS_PATH", "canon_programs.txt")
 
-# Precompiled, non-greedy JSON object matcher to tolerate chatter around JSON
+# Precompiled, non-greedy JSON object matcher to tolerate
+# chatter around JSON
 JSON_OBJ_RE = re.compile(r"\{.*?\}", re.DOTALL)
 
 # ---------------- Canonical lists + abbrev maps ----------------
@@ -69,17 +73,17 @@ COMMON_PROG_FIXES: Dict[str, str] = {
 
 # ---------------- Few-shot prompt ----------------
 SYSTEM_PROMPT = (
-    "You are a data cleaning assistant. Standardize degree program and university "
-    "names.\n\n"
+    "You are a data cleaning assistant. Standardize degree program and "
+    "university names.\n\n"
     "Rules:\n"
-    "- Input provides a single string under key `program` that may contain both "
-    "program and university.\n"
+    "- Input provides a single string under key `program` that may contain "
+    "both program and university.\n"
     "- Split into (program name, university name).\n"
     "- Trim extra spaces and commas.\n"
     '- Expand obvious abbreviations (e.g., "McG" -> "McGill University", '
     '"UBC" -> "University of British Columbia").\n'
-    "- Use Title Case for program; use official capitalization for university "
-    "names (e.g., \"University of X\").\n"
+    "- Use Title Case for program; use official capitalization for "
+    "university names (e.g., \"University of X\").\n"
     '- Ensure correct spelling (e.g., "McGill", not "McGiill").\n'
     '- If university cannot be inferred, return "Unknown".\n\n'
     "Return JSON ONLY with keys:\n"
@@ -162,8 +166,12 @@ def _split_fallback(text: str) -> Tuple[str, str]:
     return prog, uni
 
 
-def _best_match(name: str, candidates: List[str], cutoff: float = 0.86) -> str | None:
-    """Fuzzy match via difflib (lightweight, Replit-friendly)."""
+def _best_match(
+    name: str,
+    candidates: List[str],
+    cutoff: float = 0.86
+) -> str | None:
+    """Fuzzy match via difflib (lightweight, Replit friendly)."""
     if not name or not candidates:
         return None
     matches = difflib.get_close_matches(name, candidates, n=1, cutoff=cutoff)
@@ -182,7 +190,7 @@ def _post_normalize_program(prog: str) -> str:
 
 
 def _post_normalize_university(uni: str) -> str:
-    """Expand abbreviations, apply common fixes, capitalization, and canonical map."""
+    """Expand abbreviations, fix spelling, and apply canonical map."""
     u = (uni or "").strip()
 
     # Abbreviations
@@ -223,7 +231,10 @@ def _call_llm(program_text: str) -> Dict[str, str]:
     messages.append(
         {
             "role": "user",
-            "content": json.dumps({"program": program_text}, ensure_ascii=False),
+            "content": json.dumps(
+                {"program": program_text},
+                ensure_ascii=False
+            ),
         }
     )
 

@@ -11,7 +11,8 @@ json_file = "Data/llm_extend_applicant_data.json"
 
 # Infer the admission term from the date_added field.
 # GradCafe entries posted Oct–Feb typically correspond to Fall of the
-# following year; entries posted Mar–Sep correspond to Fall of that year.
+# following year; entries posted Mar–Sep correspond to
+# Fall of that year.
 def infer_term(date_str, status_str):
     """Infer a Fall term from date_added or status strings.
 
@@ -71,7 +72,10 @@ def try_float(value):
 
 
 def main():
-    """Create the applicants table and load JSON rows into PostgreSQL."""
+    """Create the applicants table and load JSON rows.
+
+    Inserts rows into PostgreSQL.
+    """
     # Use db_connection.py to open a session
     connection = get_connection()
 
@@ -118,15 +122,16 @@ def main():
 
             inserted = 0
 
-            # Iterate through JSON objects and map them to the table columns
+            # Iterate through JSON objects and map them to the table
+            # columns.
             # Loop through the rows and set p_id to start as 1 to assign
             # unique IDs to each applicant.
             for p_id, row in enumerate(data, start=1):
                 # Use parameterized query placeholders (%s) to avoid
-                # issues with apostrophes and 'None' values. psycopg
-                # automatically resolves these issues. psychopg automatically
-                # fixes apostrophes and turns None into NULL for
-                # SQL insertion. Use 15 placeholders to match 15 entries.
+                # issues with apostrophes and None values. psycopg
+                # automatically resolves these issues, fixes apostrophes,
+                # and turns None into NULL for SQL insertion.
+                # Use 15 placeholders to match 15 entries.
 
                 sql = """
                     INSERT INTO applicants VALUES (
@@ -135,8 +140,8 @@ def main():
                     );
                 """
 
-                # Extract values from the JSON dictionary using the exact keys
-                # seen in the 'llm_extend_applicant_data.json' file.
+                # Extract values from the JSON dictionary using the
+                # exact keys seen in llm_extend_applicant_data.json.
                 term_value = row.get("term")
                 if not term_value:
                     term_value = infer_term(
@@ -170,7 +175,8 @@ def main():
         print(f"Successfully loaded {inserted} rows into 'applicants'.")
 
     except Exception as e:
-        # If an error occurs (e.g., schema mismatch), rollback the transaction
+        # If an error occurs (e.g., schema mismatch), rollback
+        # the transaction.
         print(f"An error occurred during data load: {e}")
         connection.rollback()
     finally:

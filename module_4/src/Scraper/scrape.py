@@ -115,8 +115,8 @@ def extract_term_from_text(text: str):
     year = m.group(2)
     return f"{term} {year}"
 
-# Infer the term and year due to mod 2 outputs failing to scrape the term
-# field.
+# Infer the term and year due to mod 2 outputs failing
+# to scrape the term field.
 def infer_term_from_row(program_text: str, status_text: str,
                         comments_text: str):
     """Infer a term from combined program, status, and comments text."""
@@ -168,7 +168,8 @@ def _row_dict_from_tr(tr) -> dict:
             full_url = href if href.startswith("http") \
                 else (base_domain + href)
 
-        # Extract the unique ID from the URL so we can de-duplicate later
+    # Extract the unique ID from the URL so we can
+    # de-duplicate later
         result_id = extract_result_id(full_url)
 
 
@@ -318,13 +319,16 @@ if __name__ == "__main__":
         master_data = load_data(MASTER_DATA_FILE)
 
         for row in master_data:
-            rid = extract_result_id(row.get("url") or row.get("application_url_raw"))
+            rid = extract_result_id(
+                row.get("url") or row.get("application_url_raw")
+            )
             if rid is not None:
                 existing_ids.add(rid)
 
         print(f"Loaded {len(existing_ids)} known IDs from master dataset.")
 
-    except FileNotFoundError:  # pragma: no cover  # handled earlier in load_data()
+    except FileNotFoundError:  # pragma: no cover
+        # handled earlier in load_data()
         print("Master dataset not found. Continuing without ID filtering.")
 
     page = 1
@@ -345,13 +349,15 @@ if __name__ == "__main__":
         try:
             # Updated call for existing results_ids.
             page_rows, stop_now = scrape_data(page_url, existing_ids)
-        except Exception as e:  # pragma: no cover  # defensive branch; hard to trigger in tests
+        except Exception as e:  # pragma: no cover
+            # defensive branch; hard to trigger in tests
             print(f"Page scrape failed ({page_url}): {e}. Backing off 15s...")
             time.sleep(15)
             page += 1
             continue
 
-        # Account for the possibility of empty pages. Limit to 5 empty pages.
+        # Account for the possibility of empty pages. Limit
+        # to 5 empty pages.
         # Ensure to save progress.
         if not page_rows:
             empty_pages += 1
@@ -379,7 +385,8 @@ if __name__ == "__main__":
                 existing_ids.add(rid)
 
         # Existing stop logic
-        if stop_now:  # pragma: no cover  # unreachable with current scrape_data flow
+        if stop_now:  # pragma: no cover
+            # unreachable with current scrape_data flow
             print("Reached previously scraped data. Stopping.")
             break
 

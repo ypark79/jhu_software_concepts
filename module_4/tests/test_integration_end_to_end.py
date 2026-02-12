@@ -1,7 +1,7 @@
-# These series of tests check that the end-to-end flow of the Flask 
-# webpage works as expected. They check that the pull data button inserts
-# rows into the database, the update analysis button updates the analysis
-# page, and the second pull with overlapping data does not duplicate rows. 
+# These series of tests check that the end-to-end flow of the Flask
+# webpage works as expected. They check that the pull data button
+# inserts rows into the database, the update analysis button updates
+# the analysis page, and the second pull does not duplicate rows.
 # 1) Pull data (inserts rows)
 # 2) Update analysis (should succeed when not busy)
 # 3) Render analysis page
@@ -13,23 +13,24 @@ import re
 from app import create_app
 from Scraper.clean import insert_rows_into_postgres
 
-# Mark this test properly for pytest.ini. 
+# Mark this test properly for pytest.ini.
 @pytest.mark.integration
 
-# This test checks that the end-to-end flow of the Flask webpage works as expected.
+# This test checks that the end-to-end flow of the Flask webpage works
+# as expected.
 def test_end_to_end_pull_update_render(monkeypatch):
-    # Use test database to avoid touching real database. 
+    # Use test database to avoid touching real database.
     monkeypatch.setenv("PGDATABASE", "module_4_db_test")
     monkeypatch.setenv("PGUSER", os.getenv("PGUSER", "postgres"))
     monkeypatch.setenv("PGPASSWORD", os.getenv("PGPASSWORD", "postgres"))
     monkeypatch.setenv("PGHOST", "localhost")
     monkeypatch.setenv("PGPORT", "5432")
 
-    # Create app object and fake browser. 
+    # Create app object and fake browser.
     app = create_app()
     client = app.test_client()
 
-    # Connect to test db (module_4_db_test) and create test table 
+    # Connect to test db (module_4_db_test) and create test table
     # (applicants)
     conn = psycopg.connect(
         dbname=os.getenv("PGDATABASE"),

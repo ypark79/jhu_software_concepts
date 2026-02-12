@@ -29,7 +29,8 @@ def start_llm_server():
     env["OMP_NUM_THREADS"] = "1"
     env["LLAMA_NUM_THREADS"] = "1"
 
-    # subprocess.Popen runs app.py and allows code to continue. Local LLM
+    # subprocess.Popen runs app.py and allows code to continue.
+    # Local LLM must stay running while scrape.py then clean.py run.
     # must stay running while scrape.py then clean.py are executed.
     return subprocess.Popen([sys.executable, llm_script], cwd=llm_dir,
                             env=env)

@@ -9,6 +9,7 @@ __pycache__/
 *.pyc
 *.pyo
 .venv/
+.coverage
 
 # LLM hosting (DO NOT COMMIT)
 module_2/llm_hosting/

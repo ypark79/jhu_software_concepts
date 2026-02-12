@@ -1,6 +1,5 @@
-# These tests will test the database writes and idempotency. The database
-# inserts/writes will be tested using a separate test database so we do NOT
-# touch real data.
+# These tests cover database writes and idempotency.
+# Inserts use a separate test database so we do NOT touch real data.
 
 import os
 import pytest
@@ -54,15 +53,15 @@ fake_rows = [
 ]
 
 
-# Mark this test as per instructions for database schema/inserts/selects.
+# Mark this test for database schema/inserts/selects.
 @pytest.mark.db
 # Test the database inserts/writes and idempotency.
 def test_insert_on_pull_and_idempotency(monkeypatch):
-    # Set environment variables in order to use the test DB. This prevents
-    # touching the real database.
+    # Set environment variables for the test DB.
+    # This prevents touching the real database.
     monkeypatch.setenv("PGDATABASE", "module_4_db_test")
     monkeypatch.setenv("PGUSER", os.getenv("PGUSER", "postgres"))
-    monkeypatch.setenv("PGPASSWORD", os.getenv("PGPASSWORD", "postgres"))  
+    monkeypatch.setenv("PGPASSWORD", os.getenv("PGPASSWORD", "postgres"))
     monkeypatch.setenv("PGHOST", "localhost")
     monkeypatch.setenv("PGPORT", "5432")
 
@@ -146,7 +145,8 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
     assert all(value is not None for value in row)
 
     # Second pull inserts the same fake row again and checks the count
-    # to still be 1, which means it was not duplicated. Confirms idempotency.
+    # to still be 1, which means it was not duplicated.
+    # Confirms idempotency.
     response = client.post("/pull-data")
     assert response.status_code == 200, response.get_json()
 
@@ -164,7 +164,7 @@ def test_query_returns_expected_keys(monkeypatch):
     # Use test DB env vars
     monkeypatch.setenv("PGDATABASE", "module_4_db_test")
     monkeypatch.setenv("PGUSER", os.getenv("PGUSER", "postgres"))
-    monkeypatch.setenv("PGPASSWORD", os.getenv("PGPASSWORD", "postgres")) 
+    monkeypatch.setenv("PGPASSWORD", os.getenv("PGPASSWORD", "postgres"))
     monkeypatch.setenv("PGHOST", "localhost")
     monkeypatch.setenv("PGPORT", "5432")
 
@@ -217,8 +217,8 @@ def test_query_returns_expected_keys(monkeypatch):
     # Trigger insert via pull-data
     client = create_app().test_client()
     client.post("/pull-data")
-    # This will call the helper function in query_data.py to return one row
-    # as a dict with the required keys.
+    # This will call the helper in query_data.py to return
+    # one row as a dict with the required keys.
     from query_data import get_sample_applicant_dict
 
     data = get_sample_applicant_dict(table_name="applicants")

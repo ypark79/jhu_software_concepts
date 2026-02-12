@@ -46,7 +46,7 @@ def test_normalize_zero_none():
     # None should stay None
     assert clean.normalize_zero(None) is None
 
-# Test the normalize_zero function to ensure it converts "0" and its variants 
+# Test normalize_zero converts "0" and its variants.
 # to None.
 @pytest.mark.analysis
 def test_normalize_zero():
@@ -59,7 +59,8 @@ def test_normalize_zero():
     assert clean.normalize_zero("3.5") == "3.5"
 
 
-# Test the text_extractors_from_sample_text function to ensure it extracts 
+# Test text_extractors_from_sample_text extracts the
+# expected fields.
 # the correct fields from the sample text.
 @pytest.mark.analysis
 def test_text_extractors_from_sample_text():
@@ -91,7 +92,8 @@ def test_extract_term_year_autumn_normalized():
     assert clean.extract_term_year(text) == "Fall 2026"
 
 
-# Test the text_extractors_none_inputs function to ensure it returns None 
+# Test text_extractors_none_inputs returns None
+# for None input.
 # if the input is None.
 @pytest.mark.analysis
 def test_text_extractors_none_inputs():
@@ -134,7 +136,8 @@ def test_load_data_file_not_found(tmp_path):
     assert clean.load_data(str(missing_path)) == []
 
 
-# Test the save_and_load_data_roundtrip function to ensure it saves and loads 
+# Test save_and_load_data_roundtrip saves and
+# loads data correctly.
 # data correctly.
 @pytest.mark.analysis
 def test_save_and_load_data_roundtrip(tmp_path):
@@ -158,7 +161,8 @@ def test_load_data_bad_json_returns_empty(tmp_path):
     assert clean.load_data(str(bad_path)) == []
 
 
-# Test the llm_post_rows_success function to ensure it returns the correct 
+# Test llm_post_rows_success returns the
+# correct data from the LLM.
 # data from the LLM.
 @pytest.mark.analysis
 def test_llm_post_rows_success(monkeypatch):
@@ -185,7 +189,8 @@ def test_llm_post_rows_success(monkeypatch):
     assert out[0]["llm-generated-university"] == "Uni"
 
 
-# Test the llm_post_rows_missing_rows_raises function to ensure it raises 
+# Test llm_post_rows_missing_rows_raises
+# raises a RuntimeError.
 # a RuntimeError if the LLM response does not include "rows".
 @pytest.mark.analysis
 def test_llm_post_rows_missing_rows_raises(monkeypatch):
@@ -219,7 +224,7 @@ def test_llm_post_rows_all_retries_fail(monkeypatch):
         clean._llm_post_rows("http://fake-llm", [{"program": "X"}])
 
 
-# Test the clean_data_basic function to ensure it cleans the data correctly.
+# Test clean_data_basic cleans the data correctly.
 @pytest.mark.analysis
 def test_clean_data_basic(monkeypatch):
     # Fake LLM response to avoid real HTTP call
@@ -270,7 +275,8 @@ def test_clean_data_basic(monkeypatch):
     assert "llm-generated-university" not in final_rows_no_llm[0]
 
 
-# Test clean_data when decision is missing and term comes from extract_term_year
+# Test clean_data when decision is missing and term comes from
+# extract_term_year.
 @pytest.mark.analysis
 def test_clean_data_missing_decision_and_term_fallback(monkeypatch):
     # Fake LLM response
@@ -315,7 +321,8 @@ def test_parse_date_and_to_float_invalid():
     assert clean._to_float("not-a-number") is None
 
 
-# Test the append_rows_to_master function to ensure it appends the new rows 
+# Test append_rows_to_master appends the new rows
+# correctly.
 # to the master file correctly.
 @pytest.mark.analysis
 def test_append_rows_to_master(tmp_path):
@@ -395,7 +402,8 @@ def test_insert_rows_into_postgres_fake_connection(monkeypatch):
         def close(self):
             return None
 
-    # Use monkeypatch to replace psycopg.connect with the fake connection.
+    # Use monkeypatch to replace psycopg.connect
+    # with the fake connection.
     monkeypatch.setattr(clean.psycopg, "connect", lambda **kwargs: FakeConn())
 
     rows = [{
@@ -478,7 +486,10 @@ def test_insert_rows_into_postgres_skips_missing_id(monkeypatch):
 def test_clean_data_decision_only(monkeypatch):
     
     def fake_llm_post_rows(llm_url, rows_payload, timeout_s=300):
-        return [{"llm-generated-program": "CS", "llm-generated-university": "Uni"}]
+        return [{
+            "llm-generated-program": "CS",
+            "llm-generated-university": "Uni"
+        }]
 
     monkeypatch.setattr(clean, "_llm_post_rows", fake_llm_post_rows)
 
@@ -508,7 +519,10 @@ def test_clean_data_decision_only(monkeypatch):
 def test_clean_data_rejected_branch(monkeypatch):
     
     def fake_llm_post_rows(llm_url, rows_payload, timeout_s=300):
-        return [{"llm-generated-program": "CS", "llm-generated-university": "Uni"}]
+        return [{
+            "llm-generated-program": "CS",
+            "llm-generated-university": "Uni"
+        }]
 
     monkeypatch.setattr(clean, "_llm_post_rows", fake_llm_post_rows)
 
@@ -547,15 +561,39 @@ def test_clean_data_combined_program_branches(monkeypatch):
     monkeypatch.setattr(clean, "_llm_post_rows", fake_llm_post_rows)
 
     raw_rows = [
-        {"result_id": 1, "university_raw": "U1", "program_raw": "P1",
-         "date_added_raw": "", "status_raw": "", "comments_raw": "",
-         "application_url_raw": "", "result_text_raw": "", "term_inferred": None},
-        {"result_id": 2, "university_raw": "U2", "program_raw": "P2",
-         "date_added_raw": "", "status_raw": "", "comments_raw": "",
-         "application_url_raw": "", "result_text_raw": "", "term_inferred": None},
-        {"result_id": 3, "university_raw": "U3", "program_raw": "P3",
-         "date_added_raw": "", "status_raw": "", "comments_raw": "",
-         "application_url_raw": "", "result_text_raw": "", "term_inferred": None},
+        {
+            "result_id": 1,
+            "university_raw": "U1",
+            "program_raw": "P1",
+            "date_added_raw": "",
+            "status_raw": "",
+            "comments_raw": "",
+            "application_url_raw": "",
+            "result_text_raw": "",
+            "term_inferred": None,
+        },
+        {
+            "result_id": 2,
+            "university_raw": "U2",
+            "program_raw": "P2",
+            "date_added_raw": "",
+            "status_raw": "",
+            "comments_raw": "",
+            "application_url_raw": "",
+            "result_text_raw": "",
+            "term_inferred": None,
+        },
+        {
+            "result_id": 3,
+            "university_raw": "U3",
+            "program_raw": "P3",
+            "date_added_raw": "",
+            "status_raw": "",
+            "comments_raw": "",
+            "application_url_raw": "",
+            "result_text_raw": "",
+            "term_inferred": None,
+        },
     ]
 
     _, final_rows, _ = clean.clean_data(raw_rows)
@@ -574,7 +612,7 @@ def test_parse_date_empty_and_to_float_none():
 
 
 @pytest.mark.analysis
-# This test checks main() runs without running the real process. 
+# This test checks main() runs without running the real process.
 def test_clean_main(monkeypatch):
     
     monkeypatch.setattr(clean, "load_data", lambda *a, **k: [])

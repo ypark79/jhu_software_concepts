@@ -1,7 +1,6 @@
-# load_data.py has several "helper functions" that were used to ensure
-# raw data was properly formatted and converted to the correct data types
-# to facilitate data insertion into the SQL database. This test file will
-# ensure those helper functions work as expected. 
+# load_data.py has helper functions used to ensure raw data is
+# formatted correctly for SQL insertion. This test file ensures
+# those helpers work as expected.
 import json
 import pytest
 from datetime import date
@@ -12,9 +11,8 @@ import runpy
 import db_connection
 
 @pytest.mark.db
-# Test the "infer term" helper function to ensure it returns the correct term
-# based on the status and date added fields. These infer terms were written
-# because the module 2 scraper failed to scrape the term field. 
+# Test infer_term returns the correct term from status/date fields.
+# These infer terms were written because module 2 did not scrape term.
 def test_infer_term_from_status_date():
     # Status has date 01/15/2026 → should return Fall 2026
     result = load_data.infer_term("January 01, 2026", "Accepted on 01/15/2026")
@@ -28,8 +26,7 @@ def test_infer_term_from_date_added():
     assert result == "Fall 2026"
 
 
-# Test the "parse date" helper function to ensure it returns the correct date
-# object based on the date string. 
+# Test parse_date returns the correct date object.
 @pytest.mark.db
 def test_parse_date_valid():
     d = load_data.parse_date("January 05, 2026")
@@ -43,8 +40,7 @@ def test_parse_date_invalid():
     assert load_data.parse_date("") is None
 
 
-# Test the "try float" helper function to ensure it returns the correct float
-# value based on the string value. 
+# Test try_float returns the correct float value.
 @pytest.mark.db
 def test_try_float():
     assert load_data.try_float("3.9") == 3.9
@@ -52,8 +48,7 @@ def test_try_float():
     assert load_data.try_float("abc") is None
 
 
-# Test the "main" function to ensure it successfully inserts the data into
-# the SQL database. 
+# Test main inserts data into the SQL database.
 @pytest.mark.db
 def test_main_success(monkeypatch):
     # Fake JSON data with one row
@@ -76,8 +71,7 @@ def test_main_success(monkeypatch):
         }
     ]
 
-    # Fake cursor to collect SQL calls and ensure the data is inserted
-    # into the SQL database. 
+    # Fake cursor to collect SQL calls and ensure insertion works.
     class FakeCursor:
         def __init__(self):
             self.executed = []
@@ -88,8 +82,8 @@ def test_main_success(monkeypatch):
         def __enter__(self): return self
         def __exit__(self, *args): pass
 
-    # Fake connection object to test that main() executes the connection to the
-    # the SQL database successfully. 
+    # Fake connection object to test that main() executes the
+    # SQL database connection successfully.
     class FakeConn:
         def __init__(self):
             self.cursor_obj = FakeCursor()
@@ -102,27 +96,26 @@ def test_main_success(monkeypatch):
         def rollback(self): self.rolled_back = True
         def close(self): self.closed = True
 
-    # Use monkepatch to run the test connection. 
+    # Use monkeypatch to run the test connection.
     fake_conn = FakeConn()
     monkeypatch.setattr(load_data, "get_connection", lambda: fake_conn)
 
-    # Use monkey patch to open the test JSON file. 
+    # Use monkeypatch to open the test JSON file.
     monkeypatch.setattr(load_data, "json_file", "fake.json")
 
-    # Fake open() to return fake JSON to ensure the data is inserted
-    # into the SQL database. 
+    # Fake open() to return JSON and ensure the insert runs.
     def fake_open(*args, **kwargs):
         return DummyFile(json.dumps(fake_json))
 
-    # Create a test file object 
+    # Create a test file object
     class DummyFile:
         def __init__(self, text): self.text = text
         def __enter__(self): return self
         def __exit__(self, *args): pass
         def read(self): return self.text
 
-    # Monkeypatch open() to return test file object to ensure the data is
-    # inserted into the SQL database. 
+    # Monkeypatch open() to return a test file object and
+    # ensure the data is inserted into the SQL database.
     monkeypatch.setattr(builtins, "open", fake_open)
 
     # Run main()
@@ -149,7 +142,13 @@ def test_main_connection_fail(monkeypatch):
 # This test checks infer_term uses the year in the status string.
 def test_infer_term_from_status_year():
     
-    assert load_data.infer_term("January 1, 2025", "Accepted on 01/15/2026") == "Fall 2026"
+    assert (
+        load_data.infer_term(
+            "January 1, 2025",
+            "Accepted on 01/15/2026"
+        )
+        == "Fall 2026"
+    )
 
 
 @pytest.mark.analysis

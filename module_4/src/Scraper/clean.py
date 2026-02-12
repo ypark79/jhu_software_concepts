@@ -28,8 +28,8 @@ def clean_whitespace(text):
 
 
 # Clean up the extracted Program data. Isolate it by eliminating any
-# unnecessary data around it. Standardize the spacing as well. This avoids
-# issues when the local LLM cleans the Program entries.
+# unnecessary data around it. Standardize the spacing as well.
+# This avoids issues when the local LLM cleans the Program entries.
 def clean_program_cell(program_text):
     """Strip extra info from the program cell."""
     if program_text is None:
@@ -72,7 +72,8 @@ def extract_notes(text):
     """Extract the Notes section from result text."""
     if text is None:
         return None
-    # REGEX code to finds the word "Notes" and isolates all data after that
+    # REGEX code finds the word "Notes" and isolates all data
+    # after that.
     # and before "Timeline." This will be the comments data.
     match = re.search(r"Notes\s+(.*?)\s+Timeline", text, re.DOTALL)
     if match:
@@ -83,7 +84,8 @@ def extract_notes(text):
     return None
 
 
-# Extract the data for the "Decision" section of each student application.
+# Extract the data for the "Decision" section of each
+# student application.
 def extract_decision(text):
     """Extract decision text (Accepted/Rejected/etc.)."""
     if text is None:
@@ -101,8 +103,9 @@ def extract_notification_date(text):
     """Extract notification date in MM/DD/YYYY format."""
     if text is None:
         return None
-    # Search for the word "Notification on" and use REGEX code to extract
-    # the date time group. Use REGEX to standardize date format is MM/DD/YYYY.
+    # Search for "Notification on" and use REGEX code to extract
+    # the date time group. Use REGEX to standardize the
+    # date format as MM/DD/YYYY.
     match = re.search(r"Notification\s+on\s+(\d{2}/\d{2}/\d{4})", text)
     if match:
         return match.group(1)
@@ -215,7 +218,8 @@ def save_data(final_rows, output_path):
         json.dump(final_rows, f, ensure_ascii=False, indent=2)
 
 
-# Sends batches of data in chunks to the local LLM provided by instructor
+# Sends batches of data in chunks to the local LLM
+# provided by the instructor.
 # to avoid overwhelming the LLM.
 #
 # Stands by for results to come back, parses the data, and then sends
@@ -286,11 +290,10 @@ def clean_data(extracted_fields_raw,
     # to llm only once.
     llm_inputs = []
 
-    # Create a dictionary where the key is a program-university pair and the
-    # value is a list of row indices where that same pair appears in the dataset.
-    # This ensures only one program-uni pair goes into the local llm. Once the
-    # program and university are cleaned by the LLM, they will be mapped back
-    # to the all the applications that have this program-university pair.
+    # Create a dictionary where the key is a program-university pair.
+    # The value is a list of row indices where that pair appears.
+    # This ensures only one program-uni pair goes into the local LLM.
+    # Once cleaned, results are mapped back to all matching rows.
     llm_key_to_indices = {}
 
     # Iterate over all scraped rows of uncleaned data. Enumerate
@@ -325,14 +328,16 @@ def clean_data(extracted_fields_raw,
     print(f"LLM inputs total: {len(llm_inputs)}")
     print(f"LLM inputs unique (deduped): {len(unique_llm_inputs)}")
 
-    # Package each unique "program, university" string under the key "program"
+    # Package each unique "program, university" string under
+    # the key "program"
     # to match the input format expected by the local LLM (app.py).
     unique_payload_rows = [{"program": s} for s in unique_llm_inputs]
 
     # Through trial and error, batch size of 100 allows clean run of all
     # 30,000 entries.
     chunk_size = 100
-    unique_results = []  # results aligned with unique_payload_rows order
+    # Results aligned with unique_payload_rows order
+    unique_results = []
 
     # Call def chunked() to send batches of 100 of the prog-uni pairs
     # to the local LLM. Call def _llm_post_rows to receive the cleaned
@@ -343,10 +348,8 @@ def clean_data(extracted_fields_raw,
         print(f"Progress (unique LLM): "
               f"{len(unique_results)} / {len(unique_payload_rows)}")
 
-    # Create lookup dictionary that creates pairs of original prog-uni pairs
-    # with llm-cleaned prog-uni pairs. Allows you to pair the original and cleaned
-    # pairs up with an index, which then will be used to remap the cleaned
-    # pairs back to all the applications that have the unique prog-uni pair.
+    # Create a lookup of original prog-uni pairs to cleaned pairs.
+    # This lets us map cleaned results back to all matching rows.
     llm_lookup = {}
     for i, row_out in enumerate(unique_results):
         # Connect original prog-uni pair to the llm-cleaned pair.
@@ -382,8 +385,9 @@ def clean_data(extracted_fields_raw,
             decision = decision.title()
 
         # Standardizes formatting of decision and notification_date
-        # as per the assignment sample output. If both data fields exist,
-        # then they are paired. If only decision exists, then it will say
+        # as per the assignment sample output. If both data fields
+        # exist, they are paired. If only decision exists, then it
+        # will say "Accepted".
         # "Accepted"
         if decision is not None and notification_date is not None:
             row["Applicant Status"] = f"{decision} on {notification_date}"
@@ -622,10 +626,14 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
     gre_v = COALESCE(applicants.gre_v, EXCLUDED.gre_v),
     gre_aw = COALESCE(applicants.gre_aw, EXCLUDED.gre_aw),
     degree = COALESCE(applicants.degree, EXCLUDED.degree),
-    llm_generated_program = COALESCE(applicants.llm_generated_program, 
-    EXCLUDED.llm_generated_program),
-    llm_generated_university = COALESCE(applicants.llm_generated_university, 
-    EXCLUDED.llm_generated_university);
+    llm_generated_program = COALESCE(
+        applicants.llm_generated_program,
+        EXCLUDED.llm_generated_program
+    ),
+    llm_generated_university = COALESCE(
+        applicants.llm_generated_university,
+        EXCLUDED.llm_generated_university
+    );
     """
 
     inserted = 0
@@ -658,9 +666,12 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
                         "gre_v": _to_float(r.get("GRE V Score")),
                         "gre_aw": _to_float(r.get("GRE AW")),
                         "degree": r.get("Degree"),
-                        "llm_generated_program": r.get("llm-generated-program"),
-                        "llm_generated_university": r.get
-                        ("llm-generated-university"),
+                        "llm_generated_program": r.get(
+                            "llm-generated-program"
+                        ),
+                        "llm_generated_university": r.get(
+                            "llm-generated-university"
+                        ),
                     }
 
                     cur.execute(sql, params)
