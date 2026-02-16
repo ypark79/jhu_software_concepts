@@ -1,0 +1,19 @@
+venv/
+.venv/
+.DS_Store
+.pytest_cache/
+
+# No Python bytecode or caches (keeps repo small)
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Raw scraped data in src/Scraper (large files – do not push)
+# (llm_extend_applicant_data.json in Data/ and Scraper/ are allowed via root .gitignore)
+src/Scraper/raw_scraped_data.json
+src/Scraper/applicant_data.json
+
+# Do not commit real DB credentials (Step 3)
+.env
