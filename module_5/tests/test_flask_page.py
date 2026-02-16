@@ -127,6 +127,19 @@ def test_pull_data_exception_returns_500(monkeypatch):
 
 
 @pytest.mark.web
+# This test covers the /analysis path when get_connection() returns None
+# (no DB available); the page still renders with empty results.
+def test_analysis_handles_connection_none(monkeypatch):
+    monkeypatch.setattr("app.get_connection", lambda: None)
+    app = create_app()
+    client = app.test_client()
+    resp = client.get("/analysis")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert "analysis" in html.lower() or "answer" in html.lower()
+
+
+@pytest.mark.web
 # This test checks /analysis still renders when DB query fails.
 def test_analysis_handles_db_error(monkeypatch):
 
