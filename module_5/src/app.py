@@ -67,7 +67,8 @@ def create_app():
                     cur.execute("""
                         SELECT COUNT(*) 
                         FROM applicants 
-                        WHERE term ILIKE '%Fall 2026%';
+                        WHERE term ILIKE '%Fall 2026%'
+                        LIMIT 1;
                     """)
                     results['count_2026'] = cur.fetchone()[0]
 
@@ -85,7 +86,8 @@ def create_app():
                             NULLIF(COUNT(*), 0) * 100,
                             2
                         )
-                        FROM applicants;
+                        FROM applicants
+                        LIMIT 1;
                     """)
                     results['pct_intl'] = cur.fetchone()[0]
 
@@ -98,7 +100,8 @@ def create_app():
                             ROUND(AVG(gre)::numeric, 2),
                             ROUND(AVG(gre_v)::numeric, 2),
                             ROUND(AVG(gre_aw)::numeric, 2)
-                        FROM applicants;
+                        FROM applicants
+                        LIMIT 1;
                     """)
                     avg_row = cur.fetchone()
                     results['avg_gpa'] = avg_row[0]
@@ -114,7 +117,8 @@ def create_app():
                             us_or_international ILIKE 'Amer%'
                             OR us_or_international ILIKE 'US%'
                         )
-                        AND term ILIKE '%Fall 2026%';
+                        AND term ILIKE '%Fall 2026%'
+                        LIMIT 1;
                     """)
                     results['avg_gpa_us'] = cur.fetchone()[0]
 
@@ -136,7 +140,8 @@ def create_app():
                             ) * 100,
                             2
                         )
-                        FROM applicants;
+                        FROM applicants
+                        LIMIT 1;
                     """)
                     results['pct_accept_2025'] = cur.fetchone()[0]
 
@@ -146,7 +151,8 @@ def create_app():
                         SELECT ROUND(AVG(gpa)::numeric, 2)
                         FROM applicants
                         WHERE term ILIKE '%Fall 2026%'
-                        AND status ILIKE 'Accepted%';
+                        AND status ILIKE 'Accepted%'
+                        LIMIT 1;
                     """)
                     results['avg_gpa_accept_2026'] = cur.fetchone()[0]
 
@@ -159,7 +165,8 @@ def create_app():
                             OR llm_generated_university ILIKE '%JHU%'
                         )
                         AND (degree ILIKE 'Master%' OR degree = 'MS')
-                        AND llm_generated_program ILIKE '%Computer Science%';
+                        AND llm_generated_program ILIKE '%Computer Science%'
+                        LIMIT 1;
                     """)
                     results['jhu_cs_count'] = cur.fetchone()[0]
 
@@ -186,7 +193,8 @@ def create_app():
                                 '%Massachusetts Institute of Technology%'
                             OR llm_generated_university ILIKE 'Carnegie Mel%n%'
                             OR llm_generated_university ILIKE '%CMU%'
-                        );
+                        )
+                        LIMIT 1;
                     """)
                     results['top_phd_count'] = cur.fetchone()[0]
 
@@ -211,7 +219,8 @@ def create_app():
                                 '%Massachusetts Institute of Technology%'
                             OR program ILIKE '%Carnegie Mel%n%'
                             OR program ILIKE '%CMU%'
-                        );
+                        )
+                        LIMIT 1;
                     """)
                     results['orig_phd_count'] = cur.fetchone()[0]
 
@@ -239,7 +248,8 @@ def create_app():
                             OR llm_generated_university ILIKE '%JHU%'
                         )
                         AND status ILIKE 'Accepted%'
-                        AND status LIKE '%/2026';
+                        AND status LIKE '%/2026'
+                        LIMIT 1;
                     """)
                     comparison = cur.fetchone()
                     results['jhu_us'] = comparison[0]

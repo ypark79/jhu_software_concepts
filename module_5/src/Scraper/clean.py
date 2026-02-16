@@ -7,6 +7,7 @@ import time
 import os
 from datetime import datetime
 import psycopg
+from psycopg import sql
 
 # Create batches of data to control volume of data being cleaned.
 # Avoids overwhelming the LLM.
@@ -554,6 +555,10 @@ def append_rows_to_master(new_rows,
 # database automatically once cleaning is complete.
 # Only newly acquired rows will get inserted to avoid duplicates.
 
+# Maximum rows to insert per call (Step 2: enforce an inherent limit).
+MAX_INSERT_ROWS = 10000
+
+
 def insert_rows_into_postgres(rows, table_name="applicants"):
     """Insert cleaned rows into PostgreSQL with upsert."""
 
@@ -561,6 +566,9 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
     if not rows:
         print("No new rows to insert into Postgres.")
         return 0
+
+    # Enforce maximum allowed limit per call (Step 2 requirement).
+    rows = rows[:MAX_INSERT_ROWS]
 
     # Database connection settings.
     # These default values work for local setup,
@@ -580,10 +588,11 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
         port=port,
     )
 
-    # SQL insert statement.
-    # ON CONFLICT prevents duplicates.
-    sql = f"""
-    INSERT INTO {table_name} (
+    # SQL built with Identifier so table name is safely quoted (no injection).
+    # Values stay parameterized via %(name)s; only the table name is composed.
+    tbl = sql.Identifier(table_name)
+    stmt = sql.SQL("""
+    INSERT INTO {t} (
         result_id,
         program,
         comments,
@@ -618,23 +627,16 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
         %(llm_generated_university)s
     )
     ON CONFLICT (result_id) DO UPDATE SET
-    term = COALESCE(applicants.term, EXCLUDED.term),
-    us_or_international = COALESCE(applicants.us_or_international, 
-    EXCLUDED.us_or_international),
-    gpa = COALESCE(applicants.gpa, EXCLUDED.gpa),
-    gre = COALESCE(applicants.gre, EXCLUDED.gre),
-    gre_v = COALESCE(applicants.gre_v, EXCLUDED.gre_v),
-    gre_aw = COALESCE(applicants.gre_aw, EXCLUDED.gre_aw),
-    degree = COALESCE(applicants.degree, EXCLUDED.degree),
-    llm_generated_program = COALESCE(
-        applicants.llm_generated_program,
-        EXCLUDED.llm_generated_program
-    ),
-    llm_generated_university = COALESCE(
-        applicants.llm_generated_university,
-        EXCLUDED.llm_generated_university
-    );
-    """
+    term = COALESCE({t}.term, EXCLUDED.term),
+    us_or_international = COALESCE({t}.us_or_international, EXCLUDED.us_or_international),
+    gpa = COALESCE({t}.gpa, EXCLUDED.gpa),
+    gre = COALESCE({t}.gre, EXCLUDED.gre),
+    gre_v = COALESCE({t}.gre_v, EXCLUDED.gre_v),
+    gre_aw = COALESCE({t}.gre_aw, EXCLUDED.gre_aw),
+    degree = COALESCE({t}.degree, EXCLUDED.degree),
+    llm_generated_program = COALESCE({t}.llm_generated_program, EXCLUDED.llm_generated_program),
+    llm_generated_university = COALESCE({t}.llm_generated_university, EXCLUDED.llm_generated_university)
+    """).format(t=tbl)
 
     inserted = 0
 
@@ -674,7 +676,7 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
                         ),
                     }
 
-                    cur.execute(sql, params)
+                    cur.execute(stmt, params)
                     inserted += cur.rowcount
 
                     # Progress print.

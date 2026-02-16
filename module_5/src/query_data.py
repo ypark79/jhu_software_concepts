@@ -1,5 +1,6 @@
 """Run analysis queries and print results."""
 
+from psycopg import sql
 from db_connection import get_connection
 
 def main():
@@ -15,7 +16,8 @@ def main():
         cur.execute("""
             SELECT COUNT(*)
             FROM applicants
-            WHERE term ILIKE '%Fall 2026%';
+            WHERE term ILIKE '%Fall 2026%'
+            LIMIT 1;
         """)
 
         result = cur.fetchone()
@@ -34,7 +36,8 @@ def main():
                     'International'))::DECIMAL / 
                     NULLIF(COUNT(*), 0) * 100, 2
                 )
-            FROM applicants;
+            FROM applicants
+            LIMIT 1;
         """)
 
         percentage = cur.fetchone()
@@ -55,7 +58,8 @@ def main():
                         ROUND(AVG(gre)::numeric, 2), 
                         ROUND(AVG(gre_v)::numeric, 2), 
                         ROUND(AVG(gre_aw)::numeric, 2) 
-                    FROM applicants;
+                    FROM applicants
+                    LIMIT 1;
                 """)
 
         averages = cur.fetchone()
@@ -77,7 +81,8 @@ def main():
             FROM applicants
             WHERE (us_or_international ILIKE 'Amer%' OR us_or_international 
             ILIKE 'US%')
-            AND term ILIKE '%Fall 2026%';
+            AND term ILIKE '%Fall 2026%'
+            LIMIT 1;
         """)
         american_gpa_2026 = cur.fetchone()
         print(f"Average GPA of American/US students in Fall 2026: "
@@ -107,7 +112,8 @@ def main():
                     ) * 100,
                     2
                 )
-            FROM applicants;
+            FROM applicants
+            LIMIT 1;
         """)
 
         acceptance_rate_2025 = cur.fetchone()
@@ -129,7 +135,8 @@ def main():
                 SELECT ROUND(AVG(gpa)::numeric, 2)
                 FROM applicants
                 WHERE term ILIKE '%Fall 2026%' 
-                AND status ILIKE 'Accepted%';
+                AND status ILIKE 'Accepted%'
+                LIMIT 1;
             """)
 
         avg_gpa_accepted_2026 = cur.fetchone()
@@ -150,7 +157,8 @@ def main():
                 OR llm_generated_university ILIKE '%JHU%'
             )
             AND (degree ILIKE 'Master%' OR degree = 'MS')
-            AND llm_generated_program ILIKE '%Computer Science%';
+            AND llm_generated_program ILIKE '%Computer Science%'
+            LIMIT 1;
         """)
         jhu_cs_masters_count = cur.fetchone()
         print(f"Number of applicants for JHU MS in CS: "
@@ -183,7 +191,8 @@ def main():
                     '%Massachusetts Institute of Technology%'
                 OR llm_generated_university ILIKE 'Carnegie Mel%n%'
                 OR llm_generated_university ILIKE '%CMU%'
-            );
+            )
+            LIMIT 1;
         """)
         top_tier_phd_count = cur.fetchone()
         print(f"Number of 2026 PhD CS acceptances "
@@ -209,7 +218,8 @@ def main():
                 OR program ILIKE '%Massachusetts Institute of Technology%'
                 OR program ILIKE '%Carnegie Mell%n%'
                 OR program ILIKE '%CMU%'
-            );
+            )
+            LIMIT 1;
         """)
         original_fields_count = cur.fetchone()[0]
 
@@ -235,7 +245,8 @@ def main():
                     '%Massachusetts Institute of Technology%'
                 OR llm_generated_university ILIKE 'Carnegie Mel%n%'
                 OR llm_generated_university ILIKE '%CMU%'
-            );
+            )
+            LIMIT 1;
         """)
         llm_fields_count = cur.fetchone()[0]
 
@@ -259,7 +270,8 @@ def main():
             WHERE (llm_generated_university ILIKE 'John%Hopkins%' OR 
             llm_generated_university ILIKE '%JHU%')
             AND status ILIKE 'Accepted%'
-            AND status LIKE '%/2026';
+            AND status LIKE '%/2026'
+            LIMIT 1;
         """)
 
         comparison = cur.fetchone()
@@ -324,16 +336,17 @@ def get_sample_applicant_dict(table_name="applicants_db_test"):
         return None
 
     with connection.cursor() as cur:
-        # Execute the query to return one row with the required keys.
-        cur.execute(f"""
-            SELECT 
+        # Build SQL with Identifier so table name is safely quoted (no injection).
+        # Statement and execution are separate; LIMIT 1 is inherent.
+        stmt = sql.SQL("""
+            SELECT
                 p_id, result_id, program, comments, date_added, url, status,
                 term, us_or_international, gpa, gre, gre_v, gre_aw, degree,
                 llm_generated_program, llm_generated_university
-            FROM {table_name}
-            LIMIT 1;
-        """)
-
+            FROM {}
+            LIMIT 1
+        """).format(sql.Identifier(table_name))
+        cur.execute(stmt)
         row = cur.fetchone()
 
     # Close the connection to the test database.
