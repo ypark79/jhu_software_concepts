@@ -10,7 +10,7 @@ from app import create_app
 from bs4 import BeautifulSoup
 
 
-# Mark this test file with "web" marker for pytest.ini. 
+# Mark this test file with "web" marker for pytest.ini.
 @pytest.mark.web
 # Test that the app has the required routes.
 def test_app_has_required_routes():
@@ -23,8 +23,8 @@ def test_app_has_required_routes():
     # Root URL should exist (redirects to /analysis)
     assert "/" in routes
 
-    # Test that the page contains the routes to the Pull Data and 
-    # Update Analysis buttons. 
+    # Test that the page contains the routes to the Pull Data and
+    # Update Analysis buttons.
     assert "/pull-data" in routes
     assert "/update-analysis" in routes
 
@@ -43,27 +43,27 @@ def test_root_redirects_to_analysis():
 def test_get_analysis_page():
     # Create flask app object and fake web browser to
     # test GET/POST requests.
-    # without opening an actual browser. 
+    # without opening an actual browser.
     app = create_app()
 
     client = app.test_client()
 
     # Send a GET request to the page route
-    # If successful, the response status code should be 200. 
+    # If successful, the response status code should be 200.
     response = client.get("/analysis")
 
     assert response.status_code == 200
 
     # Convert HTML response into text and convert to
     # a BeautifulSoup object.
-    # to faciltiate text parsing. 
+    # to faciltiate text parsing.
     html = response.get_data(as_text=True)
 
     soup = BeautifulSoup(html, "html.parser")
 
     # Look for the form that submits to /pull-data
     # and /update-analysis.
-    # Confirm the two buttons exist. 
+    # Confirm the two buttons exist.
     pull_form = soup.find("form", {"action": "/pull-data"})
 
     update_form = soup.find("form", {"action": "/update-analysis"})
@@ -73,7 +73,7 @@ def test_get_analysis_page():
     assert update_form is not None
 
     # Check query results contains the word "analysis" and "answer".
-    # check for the two buttons by checking their text labels. 
+    # check for the two buttons by checking their text labels.
     assert "Analysis" in html
     assert "Answer:" in html
 
@@ -83,7 +83,7 @@ def test_get_analysis_page():
 @pytest.mark.web
 # Test that /scrape-status is False when no process is running.
 def test_scrape_status_route_idle():
-    
+
     app = create_app()
     client = app.test_client()
 
@@ -112,7 +112,7 @@ def test_scrape_status_route_busy():
 @pytest.mark.buttons
 # This test checks /pull-data returns 500 when subprocess fails.
 def test_pull_data_exception_returns_500(monkeypatch):
-    
+
     def fake_popen(*args, **kwargs):
         raise RuntimeError("boom")
 
@@ -129,7 +129,7 @@ def test_pull_data_exception_returns_500(monkeypatch):
 @pytest.mark.web
 # This test checks /analysis still renders when DB query fails.
 def test_analysis_handles_db_error(monkeypatch):
-    
+
     class BadCursor:
         def execute(self, *args, **kwargs):
             raise Exception("db error")
@@ -160,6 +160,6 @@ def test_analysis_handles_db_error(monkeypatch):
 # This test checks the __main__ block runs without
 # starting a real server.
 def test_app_main_block(monkeypatch):
-    
+
     monkeypatch.setattr(flask.app.Flask, "run", lambda *a, **k: None)
     runpy.run_module("app", run_name="__main__")

@@ -15,7 +15,6 @@ from flask import (
     render_template,
     redirect,
     url_for,
-    flash,
     jsonify,
     make_response,
 )
@@ -60,7 +59,7 @@ def create_app():
 
         if connection:
             try:
-                with (connection.cursor() as cur):
+                with connection.cursor() as cur:
 
                     # Query 1: Number of entries for Fall 2026
                     # We check the term and the status columns for
@@ -281,6 +280,11 @@ def create_app():
                 data=results,
                 is_scraping=is_scraping
             )
+        return render_template(
+            'index.html',
+            data=results,
+            is_scraping=is_scraping
+        )
 
     # This code block lets the webpage know if the scrape/clean process
     # is occuring. This lets index.html know whether to disable the
@@ -338,9 +342,5 @@ def create_app():
     return app
 
 if __name__ == '__main__':
-    app = create_app()
-    app.run(host='0.0.0.0', port=8080, debug=True)
-
-
-
-
+    main_app = create_app()
+    main_app.run(host='0.0.0.0', port=8080, debug=True)

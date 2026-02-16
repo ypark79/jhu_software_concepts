@@ -59,7 +59,10 @@ def run_scrape():
     """Run scrape.py as a subprocess and return its exit code."""
     print("Running scrape.py")
     # Pauses main.py until scrape.py is complete.
-    result = subprocess.run([sys.executable, scrape_script])
+    result = subprocess.run(
+        [sys.executable, scrape_script],
+        check=False
+    )
     return result.returncode
 
 

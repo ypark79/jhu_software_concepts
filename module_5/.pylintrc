@@ -1,0 +1,102 @@
+# =============================================================================
+# Pylint configuration for module_5 (beginner-friendly explanation)
+# =============================================================================
+#
+# What is this file?
+# ------------------
+# When you run "pylint src tests", Pylint looks for a config file like
+# .pylintrc in the current directory. This file tells Pylint which rules to
+# apply and which to ignore. Without it, Pylint uses its defaults and may
+# report hundreds of messages.
+#
+# Understanding message codes
+# --------------------------
+# Each Pylint check has a code. The first letter tells you the category:
+#
+#   E = Error (likely a bug or bad practice)
+#   W = Warning (suspicious but might be intentional)
+#   R = Refactor (suggests a cleaner way to write the code)
+#   C = Convention (style: naming, docstrings, imports, etc.)
+#
+# The numbers (e.g. 1101, 0915) are just IDs for that specific rule.
+#
+# What does "disable=" do?
+# -----------------------
+# The [MESSAGES CONTROL] section lists check codes we turn OFF for this
+# project. We do that for three reasons:
+#
+#   1. FALSE POSITIVES — Pylint is wrong for our code.
+#      Example: E1101 (no-member). We use psycopg connections that have
+#      .cursor() and .close() at runtime, but Pylint doesn't understand
+#      that and says "has no member". Disabling E1101 hides that incorrect
+#      complaint.
+#
+#   2. TOO STRICT / BIG REFACTORS — Fixing would mean rewriting a lot.
+#      Example: R0915 (too-many-statements) and R0801 (duplicate-code).
+#      Our query_data and app have many statements and some repeated SQL;
+#      fixing would require splitting into many small functions or shared
+#      modules. For this project we allow the current structure.
+#
+#   3. STYLE CHOICES — We don't want to enforce that style here.
+#      Example: C0116 (missing-function-docstring). Requiring a docstring
+#      on every test function and helper would be noisy; many test files
+#      don't use them. So we disable missing-docstring checks.
+#
+# [BASIC] and [DESIGN]
+# --------------------
+# These sections set LIMITS instead of turning off a check entirely.
+#
+#   max-line-length=100  — Lines can be up to 100 characters (default is 80).
+#   max-args=15          — A function can have up to 15 parameters.
+#   max-locals=25        — A function can have up to 25 local variables.
+#   max-branches=25       — A function can have up to 25 if/else branches.
+#   max-statements=100    — A function can have up to 100 statements.
+#
+# Our app and query_data have large functions; these limits allow that
+# without triggering "too many" messages.
+#
+# =============================================================================
+
+[MESSAGES CONTROL]
+disable=
+    E1101,   # no-member: psycopg connection/cursor have dynamic attributes
+    E0401,   # import-error: 'clean' when linting Scraper.main from repo
+    E0102,   # function-redefined: test helpers with same name
+    R0915,   # too-many-statements
+    R0914,   # too-many-locals
+    R0912,   # too-many-branches
+    R0801,   # duplicate-code
+    R0903,   # too-few-public-methods (test stubs)
+    C0114,   # missing-module-docstring
+    C0115,   # missing-class-docstring
+    C0116,   # missing-function-docstring
+    C0103,   # invalid-name (constants not UPPER_CASE)
+    W0621,   # redefined-outer-name
+    W0718,   # broad-exception-caught
+    W0719,   # broad-exception-raised
+    W0613,   # unused-argument (test mocks)
+    W0212,   # protected-access (testing _private)
+    C0415,   # import-outside-toplevel
+    C0410,   # multiple-imports
+    C0411,   # wrong-import-order
+    R0402,   # consider-using-from-import
+    W0603,   # global-statement (llm_hosting cache)
+    W1113,   # keyword-arg-before-vararg
+    C0321,   # multiple-statements
+    C0201,   # consider-iterating-dictionary
+    C1803,   # use-implicit-booleaness-not-comparison
+    W0108,   # unnecessary-lambda
+    W0125,   # using-constant-test (poll() is None is not constant)
+    R1732,   # consider-using-with (connection/cursor patterns vary)
+    W0612,   # unused-variable (test/fixture placeholders)
+
+[BASIC]
+# Allow longer lines
+max-line-length=100
+
+[DESIGN]
+# Allow more arguments and locals
+max-args=15
+max-locals=25
+max-branches=25
+max-statements=100

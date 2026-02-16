@@ -1,7 +1,7 @@
 import pytest
 from bs4 import BeautifulSoup
 # Import the scrape module that exists inside the src/module_4 directory
-# to test the functions within scrape.py. 
+# to test the functions within scrape.py.
 import Scraper.scrape as scrape
 import runpy
 import urllib.request
@@ -11,7 +11,7 @@ import time
 
 # This fixture simulates the GradCafe survey list page.
 # It has:
-# - One "main" row with 5 <td> cells and a link to /result page. 
+# - One "main" row with 5 <td> cells and a link to /result page.
 # - One "detail" row with a single <td> that contains term info
 SURVEY_PAGE_HTML = """
 <table>
@@ -53,7 +53,7 @@ SURVEY_PAGE_NO_LINK_HTML = """
 """
 
 
-# Test the extract_result_id function to ensure it returns the correct 
+# Test the extract_result_id function to ensure it returns the correct
 # result ID from the URL.
 @pytest.mark.analysis
 def test_extract_result_id():
@@ -70,7 +70,7 @@ def test_extract_result_id():
     assert scrape.extract_result_id("https://example.com/nope") is None
 
 
-# Test the parse_date_added function to ensure it returns the correct 
+# Test the parse_date_added function to ensure it returns the correct
 # date from the string.
 @pytest.mark.analysis
 def test_parse_date_added():
@@ -143,7 +143,7 @@ def test_extract_tr_rows_from_html():
     assert len(rows) == 2  # two <tr> tags with td content
 
 
-# Test the row_dict_from_tr function to ensure it returns the correct 
+# Test the row_dict_from_tr function to ensure it returns the correct
 # dictionary from the HTML string.
 @pytest.mark.analysis
 def test_row_dict_from_tr_parses_fields():
@@ -167,7 +167,7 @@ def test_row_dict_from_tr_parses_fields():
     assert row["application_url_raw"].startswith("https://")
 
 
-# Test the scrape_data function to ensure it returns the correct 
+# Test the scrape_data function to ensure it returns the correct
 # rows from the HTML string.
 @pytest.mark.analysis
 def test_scrape_data_happy_path(monkeypatch):
@@ -227,14 +227,14 @@ def test_scrape_data_stops_on_existing_id(monkeypatch):
     assert stop_now is True
 
 
-# Test the scrape_data function to ensure it skips rows without a 
+# Test the scrape_data function to ensure it skips rows without a
 # student application link.
 @pytest.mark.analysis
 def test_scrape_data_skips_rows_without_link(monkeypatch):
     def fake_download_html(url):
         return SURVEY_PAGE_NO_LINK_HTML
 
-    # Use monkeypatch to replace the download_html function with the 
+    # Use monkeypatch to replace the download_html function with the
     # fake function.
     monkeypatch.setattr(scrape, "download_html", fake_download_html)
     monkeypatch.setattr(scrape.time, "sleep", lambda x: None)
@@ -282,7 +282,7 @@ def test_scrape_data_detail_fetch_error_sets_none(monkeypatch):
 @pytest.mark.analysis
 # This test checks request headers are set.
 def test_make_request_headers():
-    
+
     req = scrape._make_request("https://example.com")
     headers = dict(req.header_items())
 
@@ -296,7 +296,7 @@ def test_make_request_headers():
 @pytest.mark.analysis
 # This test checks download_html returns decoded HTML.
 def test_download_html_success(monkeypatch):
-    
+
     class FakeResp:
         def read(self):
             return b"<html>ok</html>"
@@ -308,7 +308,7 @@ def test_download_html_success(monkeypatch):
 @pytest.mark.analysis
 # This test checks 5xx errors retry then fail.
 def test_download_html_http_error_retries(monkeypatch):
-    
+
     def fake_urlopen(req, timeout=60):
         raise HTTPError(req.full_url, 500, "Server Error", hdrs=None, fp=None)
 
@@ -322,7 +322,7 @@ def test_download_html_http_error_retries(monkeypatch):
 @pytest.mark.analysis
 # This test checks non-5xx HTTP errors raise immediately.
 def test_download_html_http_error_non_retry(monkeypatch):
-    
+
     def fake_urlopen(req, timeout=60):
         raise HTTPError(req.full_url, 404, "Not Found", hdrs=None, fp=None)
 
@@ -335,7 +335,7 @@ def test_download_html_http_error_non_retry(monkeypatch):
 @pytest.mark.analysis
 # This test checks URLError retries then fails.
 def test_download_html_urlerror(monkeypatch):
-    
+
     def fake_urlopen(req, timeout=60):
         raise URLError("network")
 
@@ -349,14 +349,14 @@ def test_download_html_urlerror(monkeypatch):
 @pytest.mark.analysis
 # This test checks Autumn is normalized to Fall.
 def test_extract_term_from_detail_row_autumn():
-    
+
     assert scrape.extract_term_from_detail_row("Autumn 2026") == "Fall 2026"
 
 
 @pytest.mark.analysis
 # This test checks empty pages return ([], False).
 def test_scrape_data_empty_page(monkeypatch):
-    
+
     monkeypatch.setattr(scrape, "download_html", lambda url: "<html></html>")
     rows, stop_now = scrape.scrape_data("https://example.com", set())
     assert rows == []
@@ -366,7 +366,7 @@ def test_scrape_data_empty_page(monkeypatch):
 @pytest.mark.analysis
 # This test checks rows without numeric result_id are skipped.
 def test_scrape_data_missing_result_id(monkeypatch):
-    
+
     html = """
     <table>
       <tr>
@@ -386,7 +386,7 @@ def test_scrape_data_missing_result_id(monkeypatch):
 @pytest.mark.analysis
 # This test checks detail rows without term keep term_inferred None.
 def test_scrape_data_detail_row_no_term(monkeypatch):
-    
+
     html = """
     <table>
       <tr>
@@ -409,7 +409,7 @@ def test_scrape_data_detail_row_no_term(monkeypatch):
 @pytest.mark.analysis
 # This test checks save_data/load_data roundtrip.
 def test_scrape_save_and_load(tmp_path):
-    
+
     data = [{"x": 1}]
     path = tmp_path / "data.json"
     scrape.save_data(data, str(path))
@@ -419,7 +419,7 @@ def test_scrape_save_and_load(tmp_path):
 @pytest.mark.analysis
 # This test checks load_data returns [] on bad JSON.
 def test_scrape_load_bad_json(tmp_path):
-    
+
     bad = tmp_path / "bad.json"
     bad.write_text("{bad", encoding="utf-8")
     assert scrape.load_data(str(bad)) == []
@@ -428,7 +428,7 @@ def test_scrape_load_bad_json(tmp_path):
 @pytest.mark.analysis
 # This test checks __main__ runs safely without real network.
 def test_scrape_main_block(monkeypatch, tmp_path):
-    
+
     class FakeResp:
         def read(self):
             return b"<html></html>"
@@ -441,7 +441,7 @@ def test_scrape_main_block(monkeypatch, tmp_path):
 
 
 @pytest.mark.analysis
-# Simulates the scraper’s __main__ loop with empty pages to cover the 
+# Simulates the scraper’s __main__ loop with empty pages to cover the
 # early‑exit logic without real network calls.
 def test_scrape_main_loop_paths(monkeypatch, tmp_path):
 
@@ -528,7 +528,7 @@ def test_scrape_main_loop_error_path(monkeypatch, tmp_path):
 # then empty pages to hit the main success path and early exit.
 # to hit the main success path and early exit.
 def test_scrape_main_loop_non_empty_then_empty(monkeypatch, tmp_path):
-    
+
     monkeypatch.chdir(tmp_path)
 
     # Fake master data so existing_ids gets populated
@@ -575,14 +575,15 @@ def test_scrape_main_loop_non_empty_then_empty(monkeypatch, tmp_path):
 
 
 @pytest.mark.analysis
-# Forces a page scrape error in the __main__ loop to cover the 
+# Forces a page scrape error in the __main__ loop to cover the
 # error‑handling branch.
 def test_scrape_main_loop_error_path(monkeypatch, tmp_path):
-    
+
     monkeypatch.chdir(tmp_path)
 
     # Fake master data (so load_data succeeds)
-    import io, json, builtins
+    import io
+    import builtins
     def fake_open(path, mode="r", *args, **kwargs):
         if "r" in mode:
             return io.StringIO("[]")

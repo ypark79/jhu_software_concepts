@@ -42,8 +42,7 @@ def infer_term(date_str, status_str):
     # Posts from Jan–Sep are for Fall of the current year.
     if month >= 10:
         return f"Fall {year + 1}"
-    else:
-        return f"Fall {year}"
+    return f"Fall {year}"
 
 
 # Convert date entries from strings into Python date objects to enable
@@ -186,4 +185,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

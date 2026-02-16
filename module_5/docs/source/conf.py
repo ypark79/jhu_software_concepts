@@ -4,19 +4,20 @@
 # see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath("../../src"))
+sys.path.insert(0, os.path.abspath("../../src/Scraper"))
+
 # -- Project information --
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 # project-information
 
 project = 'Grad Cafe Analytics'
-copyright = '2026, Youngmin Park'
+copyright = '2026, Youngmin Park'  # pylint: disable=redefined-builtin
 author = 'Youngmin Park'
 release = '1.0'
-
-import os
-import sys
-sys.path.insert(0, os.path.abspath("../../src"))
-sys.path.insert(0, os.path.abspath("../../src/Scraper"))
 
 # -- General configuration --
 # https://www.sphinx-doc.org/en/master/usage/configuration.html

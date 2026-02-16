@@ -67,7 +67,7 @@ def test_end_to_end_pull_update_render(monkeypatch):
         cur.execute("TRUNCATE TABLE applicants;")
     conn.commit()
 
-    # Create 2x Fake rows for pull-data with fake result_ids. 
+    # Create 2x Fake rows for pull-data with fake result_ids.
     fake_rows = [
         {
             "result_id": 2001,
@@ -133,18 +133,18 @@ def test_end_to_end_pull_update_render(monkeypatch):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
 
-    # Find all percent values in the html. 
+    # Find all percent values in the html.
     percents = re.findall(r"\b\d+(?:\.\d+)?%\b", html)
 
-    # All percentage values must have exactly two decimals. 
+    # All percentage values must have exactly two decimals.
     for p in percents:
         assert re.fullmatch(r"\d+\.\d{2}%", p)
 
-    # Verify all answer blocks contain "Answer:" label. 
+    # Verify all answer blocks contain "Answer:" label.
     assert html.count("Answer:") >= 11
 
     # Execute a re-pull and verify that the total count of data rows has
-    # not changed. This indicates that there are no duplicate rows. 
+    # not changed. This indicates that there are no duplicate rows.
     response = client.post("/pull-data")
     assert response.status_code == 200
 

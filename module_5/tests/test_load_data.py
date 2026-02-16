@@ -6,7 +6,7 @@ import pytest
 from datetime import date
 import load_data
 import builtins
-import io 
+import io
 import runpy
 import db_connection
 
@@ -127,11 +127,11 @@ def test_main_success(monkeypatch):
 
 
 # Test the "main" function to ensure it exits without error when the
-# connection to the SQL database fails. 
+# connection to the SQL database fails.
 @pytest.mark.db
 def test_main_connection_fail(monkeypatch):
     # Force get_connection to return None to ensure the function exits
-    # without error. 
+    # without error.
     monkeypatch.setattr(load_data, "get_connection", lambda: None)
 
     # Run main() — should just exit without error
@@ -141,7 +141,7 @@ def test_main_connection_fail(monkeypatch):
 @pytest.mark.analysis
 # This test checks infer_term uses the year in the status string.
 def test_infer_term_from_status_year():
-    
+
     assert (
         load_data.infer_term(
             "January 1, 2025",
@@ -154,7 +154,7 @@ def test_infer_term_from_status_year():
 @pytest.mark.analysis
 # This test checks month-based fallback logic.
 def test_infer_term_fallback_months():
-    
+
     assert load_data.infer_term("October 1, 2025", None) == "Fall 2026"
     assert load_data.infer_term("May 1, 2025", None) == "Fall 2025"
 
@@ -162,14 +162,14 @@ def test_infer_term_fallback_months():
 @pytest.mark.analysis
 # This test checks invalid dates return None.
 def test_infer_term_invalid_date():
-    
+
     assert load_data.infer_term("bad date", None) is None
 
 
 @pytest.mark.db
 # This test checks main() rolls back and closes on DB error.
 def test_load_data_main_rollback(monkeypatch):
-    
+
     class FakeCursor:
         def execute(self, *args, **kwargs):
             raise Exception("db error")
@@ -208,7 +208,7 @@ def test_load_data_main_rollback(monkeypatch):
 @pytest.mark.analysis
 # This test checks the __main__ block runs safely.
 def test_load_data_main_block(monkeypatch):
-    
+
     class FakeCursor:
         def execute(self, *args, **kwargs):
             return None

@@ -4,7 +4,7 @@ import Scraper.clean as clean
 import runpy
 
 
-# Test the chunked function to ensure it splits a list into groups 
+# Test the chunked function to ensure it splits a list into groups
 # of a given size.
 @pytest.mark.analysis
 def test_chunked_splits_list():
@@ -14,7 +14,7 @@ def test_chunked_splits_list():
     assert chunks == [[1, 2], [3, 4], [5]]
 
 
-# Test the clean_whitespace function to ensure it removes unnecessary 
+# Test the clean_whitespace function to ensure it removes unnecessary
 # whitespace and standardizes spacing.
 @pytest.mark.analysis
 def test_clean_whitespace():
@@ -25,7 +25,7 @@ def test_clean_whitespace():
     assert clean.clean_whitespace("  hello   world  ") == "hello world"
 
 
-# Test the clean_program_cell function to ensure it removes extra info 
+# Test the clean_program_cell function to ensure it removes extra info
 # after "Accepted" and normalizes spacing.
 @pytest.mark.analysis
 def test_clean_program_cell():
@@ -127,7 +127,7 @@ def test_text_extractors_no_match():
     assert clean.extract_term_year(text) is None
 
 
-# Test the load_data_file_not_found function to ensure it returns an 
+# Test the load_data_file_not_found function to ensure it returns an
 # empty list if the file does not exist.
 @pytest.mark.analysis
 def test_load_data_file_not_found(tmp_path):
@@ -361,7 +361,7 @@ def test_append_rows_to_master_skips_none_id(tmp_path):
     assert added == []
 
 
-# Test the insert_rows_into_postgres function to ensure it inserts the 
+# Test the insert_rows_into_postgres function to ensure it inserts the
 # new rows into the database correctly.
 @pytest.mark.db
 def test_insert_rows_into_postgres_empty_returns_zero():
@@ -369,7 +369,7 @@ def test_insert_rows_into_postgres_empty_returns_zero():
     assert clean.insert_rows_into_postgres([]) == 0
 
 
-# Test the insert_rows_into_postgres function to ensure it returns 0 if 
+# Test the insert_rows_into_postgres function to ensure it returns 0 if
 # the rows are empty.
 @pytest.mark.db
 def test_insert_rows_into_postgres_fake_connection(monkeypatch):
@@ -484,7 +484,7 @@ def test_insert_rows_into_postgres_skips_missing_id(monkeypatch):
 @pytest.mark.analysis
 # This test checks decision-only branch sets status without date.
 def test_clean_data_decision_only(monkeypatch):
-    
+
     def fake_llm_post_rows(llm_url, rows_payload, timeout_s=300):
         return [{
             "llm-generated-program": "CS",
@@ -508,7 +508,7 @@ def test_clean_data_decision_only(monkeypatch):
     extracted, final_rows, _ = clean.clean_data(raw_rows)
     # Final rows still should have status
     assert final_rows[0]["status"] == "Accepted"
-    
+
     # These keys exist only in extracted_fields_raw
     assert extracted[0]["Accepted: Acceptance Date"] is None
     assert extracted[0]["Rejected: Rejection Date"] is None
@@ -517,7 +517,7 @@ def test_clean_data_decision_only(monkeypatch):
 @pytest.mark.analysis
 # This test checks rejected branch sets rejection date.
 def test_clean_data_rejected_branch(monkeypatch):
-    
+
     def fake_llm_post_rows(llm_url, rows_payload, timeout_s=300):
         return [{
             "llm-generated-program": "CS",
@@ -550,7 +550,7 @@ def test_clean_data_rejected_branch(monkeypatch):
 @pytest.mark.analysis
 # This test checks program-only, uni-only, and neither cases.
 def test_clean_data_combined_program_branches(monkeypatch):
-    
+
     def fake_llm_post_rows(llm_url, rows_payload, timeout_s=300):
         return [
             {"llm-generated-program": "CS", "llm-generated-university": None},
@@ -606,7 +606,7 @@ def test_clean_data_combined_program_branches(monkeypatch):
 @pytest.mark.analysis
 # This test checks empty/None inputs return None.
 def test_parse_date_empty_and_to_float_none():
-    
+
     assert clean._parse_date("") is None
     assert clean._to_float(None) is None
 
@@ -614,7 +614,7 @@ def test_parse_date_empty_and_to_float_none():
 @pytest.mark.analysis
 # This test checks main() runs without running the real process.
 def test_clean_main(monkeypatch):
-    
+
     monkeypatch.setattr(clean, "load_data", lambda *a, **k: [])
     monkeypatch.setattr(clean, "clean_data", lambda *a, **k: ([], [], []))
     monkeypatch.setattr(clean, "append_rows_to_master", lambda *a, **k: [])
@@ -627,6 +627,6 @@ def test_clean_main(monkeypatch):
 @pytest.mark.analysis
 # This test checks the __main__ block runs safely.
 def test_clean_main_block(tmp_path, monkeypatch):
-    
+
     monkeypatch.chdir(tmp_path)
     runpy.run_module("Scraper.clean", run_name="__main__")

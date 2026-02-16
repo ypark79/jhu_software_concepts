@@ -33,7 +33,7 @@ def test_main_success(monkeypatch):
 
         # Execute the SQL query and confirm the query was executed.
         def execute(self, sql):
-           
+
             pass
 
     # Execute preloaded fetchone() calls
@@ -150,7 +150,7 @@ class FakeConn:
 @pytest.mark.analysis
 # This test checks the "N/A" acceptance branch and no top-intl branch.
 def test_query_data_acceptance_none_and_top_intl_none(monkeypatch):
-    
+
     results = [
         (0,), (0,), (0,0,0,0), (0,), (None,), (0,), (0,), (0,), (0,), (0,),
         (1,1), None
@@ -167,7 +167,7 @@ def test_query_data_acceptance_none_and_top_intl_none(monkeypatch):
 # This test checks both comparison branches
 # (American - Intl, Intl - American).
 def test_query_data_comparison_branches(monkeypatch):
-    
+
     results_a = [
         (0,), (0,), (0,0,0,0), (0,), (0,), (0,), (0,), (0,), (0,), (0,),
         (5,1), ("X", 1)
@@ -194,7 +194,7 @@ def test_query_data_comparison_branches(monkeypatch):
 @pytest.mark.db
 # This test checks None is returned when DB connection fails.
 def test_get_sample_applicant_dict_connection_none(monkeypatch):
-    
+
     monkeypatch.setattr(query_data, "get_connection", lambda: None)
     assert query_data.get_sample_applicant_dict() is None
 
@@ -202,7 +202,7 @@ def test_get_sample_applicant_dict_connection_none(monkeypatch):
 @pytest.mark.db
 # This test checks None is returned when query returns no rows.
 def test_get_sample_applicant_dict_row_none(monkeypatch):
-    
+
     class Conn:
         def cursor(self):
             return FakeCursor([None])
@@ -216,8 +216,8 @@ def test_get_sample_applicant_dict_row_none(monkeypatch):
 @pytest.mark.analysis
 # This test checks the __main__ block runs safely.
 def test_query_data_main_block(monkeypatch):
-    
-    
+
+
     results = [
         (0,), (0,), (0,0,0,0), (0,), (0,), (0,), (0,), (0,), (0,), (0,),
         (1,1), None

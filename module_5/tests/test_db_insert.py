@@ -8,11 +8,11 @@ import psycopg
 from app import create_app
 from Scraper.clean import insert_rows_into_postgres
 
-# These are the required keys as outlined in the mod 3 assignment. 
+# These are the required keys as outlined in the mod 3 assignment.
 # I also included "result_id" because this is the unique identifier
-# for each applicant and critical to my code to ensure that 
+# for each applicant and critical to my code to ensure that
 # only new entries are scraped/cleaned from gradcafe and that
-# there are no duplicates. 
+# there are no duplicates.
 EXPECTED_KEYS = {
     "p_id",
     "result_id",
@@ -81,9 +81,9 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
         port=int(os.getenv("PGPORT", "5432")),
     )
 
-  
+
     with conn.cursor() as cur:
-        # Create test table 
+        # Create test table
         cur.execute("""
             CREATE TABLE IF NOT EXISTS applicants (
                 p_id SERIAL,
@@ -104,13 +104,13 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
                 llm_generated_university TEXT
             );
         """)
-        # Ensure the table is cleared before each test as per the 
-        # assignment instructions. 
+        # Ensure the table is cleared before each test as per the
+        # assignment instructions.
         cur.execute("TRUNCATE TABLE applicants;")
         conn.commit()
 
 
-    # Mocks subprocess,Popen so /pull-data inserts fake row directly 
+    # Mocks subprocess,Popen so /pull-data inserts fake row directly
     # into test table
     def fake_popen(*args, **kwargs):
         insert_rows_into_postgres(fake_rows, table_name="applicants")
@@ -125,14 +125,14 @@ def test_insert_on_pull_and_idempotency(monkeypatch):
     assert response.status_code == 200, response.get_json()
 
     # Keeps count of rows in the test table after the first pull.
-    
+
     with conn.cursor() as cur:
         cur.execute("SELECT COUNT(*) FROM applicants;")
         count_after_first = cur.fetchone()[0]
     assert count_after_first == 1
 
-    # Check that all required fields are non-null after the pull. 
-    # Select one row of fake data. 
+    # Check that all required fields are non-null after the pull.
+    # Select one row of fake data.
     with conn.cursor() as cur:
         cur.execute("""
             SELECT
@@ -204,7 +204,7 @@ def test_query_returns_expected_keys(monkeypatch):
                     llm_generated_university TEXT
                 );
             """)
-            # Clear table 
+            # Clear table
             cur.execute("TRUNCATE TABLE applicants;")
             conn.commit()
     conn.close()

@@ -692,12 +692,12 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
 def main():
     """Run clean -> append -> save -> insert pipeline."""
     # Clean newly scraped rows
-    extracted_fields_raw, final_rows, final_rows_no_llm = clean_data(
+    _, final_rows, final_rows_no_llm = clean_data(
         load_data("raw_scraped_data.json")
     )
 
     # Update master JSON file
-    new_rows_added = append_rows_to_master(
+    append_rows_to_master(
         final_rows,
         "llm_extend_applicant_data.json"
     )

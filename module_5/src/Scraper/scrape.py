@@ -6,7 +6,7 @@ import json
 from bs4 import BeautifulSoup
 import time
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Separate the base domain of the URL to facilitate code entering
 # different endpoints.
@@ -371,8 +371,7 @@ if __name__ == "__main__":
 
             page += 1
             continue
-        else:
-            empty_pages = 0
+        empty_pages = 0
 
         # Take all rows scraped from a page and add to dataset.
         # Scraper stops when previously scraped data exists.

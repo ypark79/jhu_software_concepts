@@ -305,10 +305,9 @@ def main():
         else:
             print(" - No international acceptances found for 2026.")
 
-
     connection.close()
 
-# This is a test helper function to return one row as a dict with 
+# This is a test helper function to return one row as a dict with
 # the required keys. This will facilitate the test in test_db_insert.py.
 def get_sample_applicant_dict(table_name="applicants_db_test"):
     """Return one applicant row as a dict for testing.
