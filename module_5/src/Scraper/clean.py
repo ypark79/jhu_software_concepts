@@ -1,6 +1,7 @@
 """Clean scraped GradCafe data and load into JSON/PostgreSQL."""
 
 from urllib.request import urlopen, Request
+import getpass
 import json
 import re
 import time
@@ -570,11 +571,10 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
     # Enforce maximum allowed limit per call (Step 2 requirement).
     rows = rows[:MAX_INSERT_ROWS]
 
-    # Database connection settings.
-    # These default values work for local setup,
-    # but environment variables can override them.
+    # Database connection settings (Step 3: no hard-coded credentials).
+    # All values from environment variables; PGUSER falls back to OS user if unset.
     dbname = os.getenv("PGDATABASE", "module_3")
-    user = os.getenv("PGUSER", "youngminpark")
+    user = os.getenv("PGUSER") or getpass.getuser()
     password = os.getenv("PGPASSWORD")  # often None locally
     host = os.getenv("PGHOST", "localhost")
     port = int(os.getenv("PGPORT", "5432"))
