@@ -11,7 +11,10 @@ import json
 import subprocess
 from urllib.request import urlopen
 
-import clean
+try:
+    from . import clean  # when Scraper.main is imported as a package
+except ImportError:
+    import clean  # when main.py is run directly from Scraper/
 
 raw_file = "raw_scraped_data.json"
 llm_dir = "llm_hosting"

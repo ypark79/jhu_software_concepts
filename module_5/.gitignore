@@ -19,6 +19,9 @@ src/Scraper/applicant_data.json
 # Do not commit real DB credentials (Step 3)
 .env
 
+# pydeps entry point (for generating dependency.svg only)
+src/_pydeps_entry.py
+
 # Work in progress — will add to these as we go; un-ignore when ready to commit
 README.md
 STEP1_PYLINT_WALKTHROUGH.md
