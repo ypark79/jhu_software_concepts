@@ -1,17 +1,18 @@
 """Scrape GradCafe survey pages and extract raw application data."""
 
-from urllib.request import urlopen, Request
-from urllib.error import HTTPError, URLError
 import json
-from bs4 import BeautifulSoup
-import time
 import re
+import time
 from datetime import datetime
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+
+from bs4 import BeautifulSoup
 
 # Separate the base domain of the URL to facilitate code entering
 # different endpoints.
-base_domain = "https://www.thegradcafe.com"
-base_survey_url = f"{base_domain}/survey"
+BASE_DOMAIN = "https://www.thegradcafe.com"
+BASE_SURVEY_URL = f"{BASE_DOMAIN}/survey"
 
 # Standardize the GET requests that are made by the code to the website.
 # This makes the requests look like its coming from a user on a MAC
@@ -32,7 +33,7 @@ def _make_request(url: str, accept: str = "text/html,application/xhtml+xml,"
         # Reduces chances of losing connection with the website and code
         # crashing.
         "Connection": "keep-alive",
-        "Referer": f"{base_domain}/survey/",
+        "Referer": f"{BASE_DOMAIN}/survey/",
     }
     return Request(url, headers=headers, method="GET")
 
@@ -46,10 +47,9 @@ def download_html(url: str) -> str:
     # scraping. Retry scrape with increasing amounts of wait time.
     for attempt in range(5):
         try:
-            resp = urlopen(req, timeout=60)
-            # errors guards against characters that utf-8 does not
-            # recognize.
-            return resp.read().decode("utf-8", errors="replace")
+            with urlopen(req, timeout=60) as resp:
+                # errors guards against characters utf-8 doesn't recognize
+                return resp.read().decode("utf-8", errors="replace")
         # Addresses courses of action if code encounters server errors.
         # Code will exponentially increase wait time before attempting
         # again. Print status for awareness.
@@ -166,7 +166,7 @@ def _row_dict_from_tr(tr) -> dict:
         # student application links during scraping.
         if href:
             full_url = href if href.startswith("http") \
-                else (base_domain + href)
+                else (BASE_DOMAIN + href)
 
     # Extract the unique ID from the URL so we can
     # de-duplicate later
@@ -205,9 +205,9 @@ def extract_term_from_detail_row(detail_text: str):
 # Primary data scraper function.
 # Updated to stop scraping when it identifies a results_id that already
 # exists in the original JSON file.
-def scrape_data(page_url: str, existing_ids: set) -> tuple[list[dict], bool]:
+def scrape_data(url: str, known_ids: set) -> tuple[list[dict], bool]:
     """Scrape one survey page and return rows plus a stop flag."""
-    html_text = download_html(page_url)
+    html_text = download_html(url)
 
     tr_rows = _extract_tr_rows_from_html(html_text)
     # Addresses empty pages.
@@ -215,25 +215,25 @@ def scrape_data(page_url: str, existing_ids: set) -> tuple[list[dict], bool]:
         return [], False
 
     extracted = []
-    stop_now = False
+    should_stop = False
     i = 0
     while i < len(tr_rows):
         tr = tr_rows[i]
-        row = _row_dict_from_tr(tr)
+        row_data = _row_dict_from_tr(tr)
 
-        # If the row has no URL,  cannot scrape the detail page
-        if row.get("application_url_raw") is None:
+        # If the row has no URL, cannot scrape the detail page
+        if row_data.get("application_url_raw") is None:
             i += 1
             continue
 
-        rid = row.get("result_id")
-        if rid is None:
+        result_id = row_data.get("result_id")
+        if result_id is None:
             i += 1
             continue
 
         # Stop when we hit an ID we already have
-        if rid in existing_ids:
-            stop_now = True
+        if result_id in known_ids:
+            should_stop = True
             break
 
         # Look at the NEXT tr for detail info
@@ -248,9 +248,9 @@ def scrape_data(page_url: str, existing_ids: set) -> tuple[list[dict], bool]:
                 term_found = extract_term_from_detail_row(detail_text)
 
         # Save it on the row
-        row["term_inferred"] = term_found
+        row_data["term_inferred"] = term_found
 
-        extracted.append(row)
+        extracted.append(row_data)
 
         # Move to the next row.
         # If we consumed the detail row, skip it by jumping +2.
@@ -260,17 +260,17 @@ def scrape_data(page_url: str, existing_ids: set) -> tuple[list[dict], bool]:
             i += 1
     # Extract data from each student application link and put into
     # results_text_raw for cleaning later.
-    for row in extracted:
-        application_url = row.get("application_url_raw")
+    for row_data in extracted:
+        application_url = row_data.get("application_url_raw")
         if application_url:
             try:
                 result_html = download_html(application_url)
-                row["result_text_raw"] = extract_text(result_html)
+                row_data["result_text_raw"] = extract_text(result_html)
             # Guards against links that fail or server/network failures.
-            except Exception:
-                row["result_text_raw"] = None
+            except (HTTPError, URLError, OSError):
+                row_data["result_text_raw"] = None
             time.sleep(0.20)
-    return extracted, stop_now
+    return extracted, should_stop
 
 
 # Convert dirty data into json and write to a file.
@@ -289,19 +289,16 @@ def load_data(filename: str) -> list[dict]:
             return json.load(f)
     except FileNotFoundError:
         return []
-    except Exception:
+    except (ValueError, OSError):
         return []
 
 # Code execution portion.
 if __name__ == "__main__":
-    # Set target to 1000 just in case so code does not run forever.
-    target = 1000  # safety cap so it never runs forever
+    # Safety cap so it never runs forever
+    TARGET = 1000
 
-
-    # This will be the dirty output from scrape.py and will be used
-    # by clean.py.
-    final_file = "raw_scraped_data.json"
-
+    # Dirty output from scrape.py, used by clean.py
+    FINAL_FILE = "raw_scraped_data.json"
 
     # Safety measure that loads all scraped data before crash. Identify
     # what page the start on if code/server crashes.
@@ -337,11 +334,11 @@ if __name__ == "__main__":
     empty_pages = 0
 
     # Scrape only NEW entries (stop when we hit an existing ID).
-    while len(all_rows) < target:
+    while len(all_rows) < TARGET:
         # Distinguish between the URL for the first page and subsequent
         # pages. Print progress.
-        page_url = f"{base_survey_url}/" if page == 1 else \
-            f"{base_survey_url}/?page={page}"
+        page_url = f"{BASE_SURVEY_URL}/" if page == 1 else \
+            f"{BASE_SURVEY_URL}/?page={page}"
         print("Scraping:", page_url)
 
         # Retry process in case server does not respond. Print location
@@ -349,7 +346,7 @@ if __name__ == "__main__":
         try:
             # Updated call for existing results_ids.
             page_rows, stop_now = scrape_data(page_url, existing_ids)
-        except Exception as e:  # pragma: no cover
+        except (HTTPError, URLError, OSError) as e:  # pragma: no cover
             # defensive branch; hard to trigger in tests
             print(f"Page scrape failed ({page_url}): {e}. Backing off 15s...")
             time.sleep(15)
@@ -397,6 +394,6 @@ if __name__ == "__main__":
         time.sleep(0.75)
 
     # Print status to indicate completion.
-    save_data(all_rows[:target], final_file)
-    saved_n = min(len(all_rows), target)
-    print(f"Done. Saved {saved_n} entries to {final_file}")
+    save_data(all_rows[:TARGET], FINAL_FILE)
+    saved_n = min(len(all_rows), TARGET)
+    print(f"Done. Saved {saved_n} entries to {FINAL_FILE}")

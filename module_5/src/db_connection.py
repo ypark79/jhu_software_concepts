@@ -29,7 +29,7 @@ def get_connection():
             port=port
         )
         return conn
-    except Exception as e:
+    except (OSError, psycopg.Error) as e:
         print(f"Error: Unable to connect to the database '{database_name}'.")
         print(f"Details: {e}")
         return None

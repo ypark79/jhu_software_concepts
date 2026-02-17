@@ -2,8 +2,10 @@
 # so the webpage shows expected content.
 import pytest
 import runpy
+
 import flask.app
-# Import the Flask app
+import psycopg
+
 from app import create_app
 # import BeautifulSoup to parse index.html and test query
 # answer formatting and the two buttons.
@@ -114,7 +116,7 @@ def test_scrape_status_route_busy():
 def test_pull_data_exception_returns_500(monkeypatch):
 
     def fake_popen(*args, **kwargs):
-        raise RuntimeError("boom")
+        raise OSError("boom")
 
     monkeypatch.setattr("app.subprocess.Popen", fake_popen)
 
@@ -140,12 +142,60 @@ def test_analysis_handles_connection_none(monkeypatch):
 
 
 @pytest.mark.web
+# This test covers the /analysis path when get_connection() succeeds
+# and all queries run (covers app.py DB block 90-292).
+def test_analysis_handles_connection_success(monkeypatch):
+    # Return values for each query in order (11 queries total).
+    returns = [
+        (5,),           # count_2026
+        (30.5,),        # pct_intl
+        (3.5, 315.0, 155.0, 4.0),  # avg gpa, gre, gre_v, gre_aw
+        (3.6,),         # avg_gpa_us
+        (25.0,),        # pct_accept_2025
+        (3.7,),         # avg_gpa_accept_2026
+        (3,),           # jhu_cs_count
+        (10,),          # top_phd_count
+        (2,),           # orig_phd_count
+        (4, 6,),        # jhu_us, jhu_intl
+        ("MIT", 8),     # top_intl_uni, top_intl_count
+    ]
+
+    class GoodCursor:
+        def execute(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def fetchone(self):
+            return returns.pop(0) if returns else (0,)
+
+    class GoodConn:
+        def cursor(self):
+            return GoodCursor()
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr("app.get_connection", lambda: GoodConn())
+    app = create_app()
+    client = app.test_client()
+    resp = client.get("/analysis")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert "Analysis" in html
+
+
+@pytest.mark.web
 # This test checks /analysis still renders when DB query fails.
 def test_analysis_handles_db_error(monkeypatch):
 
     class BadCursor:
         def execute(self, *args, **kwargs):
-            raise Exception("db error")
+            raise psycopg.ProgrammingError("db error")
 
         def __enter__(self):
             return self

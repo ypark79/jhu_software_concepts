@@ -16,11 +16,11 @@ try:
 except ImportError:
     import clean  # when main.py is run directly from Scraper/
 
-raw_file = "raw_scraped_data.json"
-llm_dir = "llm_hosting"
-llm_script = "app.py"
-scrape_script = "scrape.py"
-llm_health_url = "http://127.0.0.1:8000/"
+RAW_FILE = "raw_scraped_data.json"
+LLM_DIR = "llm_hosting"
+LLM_SCRIPT = "app.py"
+SCRAPE_SCRIPT = "scrape.py"
+LLM_HEALTH_URL = "http://127.0.0.1:8000/"
 
 
 # This function ensure the local LLM starts and stays running in the
@@ -35,7 +35,7 @@ def start_llm_server():
     # subprocess.Popen runs app.py and allows code to continue.
     # Local LLM must stay running while scrape.py then clean.py run.
     # must stay running while scrape.py then clean.py are executed.
-    return subprocess.Popen([sys.executable, llm_script], cwd=llm_dir,
+    return subprocess.Popen([sys.executable, LLM_SCRIPT], cwd=LLM_DIR,
                             env=env)
 
 
@@ -48,10 +48,11 @@ def wait_for_llm(timeout_seconds=300):
     # Retries if opening the server fails.
     while time.time() - start < timeout_seconds:
         try:
-            urlopen(llm_health_url, timeout=5)
+            with urlopen(LLM_HEALTH_URL, timeout=5) as _:
+                pass
             print("LLM server is ready.")
             return True
-        except Exception:
+        except OSError:
             time.sleep(5)
 
     print("Timed out waiting for LLM server.")
@@ -63,7 +64,7 @@ def run_scrape():
     print("Running scrape.py")
     # Pauses main.py until scrape.py is complete.
     result = subprocess.run(
-        [sys.executable, scrape_script],
+        [sys.executable, SCRAPE_SCRIPT],
         check=False
     )
     return result.returncode
@@ -120,14 +121,14 @@ def main():
         return
 
     # Wait until raw JSON file exists.
-    if not wait_for_file(raw_file):
+    if not wait_for_file(RAW_FILE):
         return
 
     # Validate the output file of scrape.py
     try:
-        n = json_sanity_check(raw_file)
+        n = json_sanity_check(RAW_FILE)
         print(f"raw_scraped_data.json loaded successfully ({n} rows).")
-    except Exception as e:
+    except (ValueError, OSError) as e:
         print(f"raw_scraped_data.json is not valid JSON: {e}")
         return
 
@@ -141,5 +142,5 @@ def main():
     print("applicant_data.json")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

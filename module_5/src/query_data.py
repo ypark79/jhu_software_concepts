@@ -32,8 +32,9 @@ def main():
         cur.execute("""
             SELECT
                 ROUND(
-                    (COUNT(*) FILTER (WHERE us_or_international = 
-                    'International'))::DECIMAL / 
+                    (COUNT(*) FILTER (
+                        WHERE us_or_international = 'International'
+                    ))::DECIMAL /
                     NULLIF(COUNT(*), 0) * 100, 2
                 )
             FROM applicants
@@ -253,8 +254,9 @@ def main():
         # Print results and the difference.
         print(f"PhD CS Acceptances (Original Fields): "
               f"{original_fields_count}")
-        print(f"PhD CS Acceptances (LLM Fields):"
-              f" {llm_fields_count}")
+        print(
+            f"PhD CS Acceptances (LLM Fields): {llm_fields_count}"
+        )
         print(f"Difference: {llm_fields_count - original_fields_count}.")
 
 
@@ -336,7 +338,7 @@ def get_sample_applicant_dict(table_name="applicants_db_test"):
         return None
 
     with connection.cursor() as cur:
-        # Build SQL with Identifier so table name is safely quoted (no injection).
+        # Build SQL with Identifier for table name (no injection).
         # Statement and execution are separate; LIMIT 1 is inherent.
         stmt = sql.SQL("""
             SELECT

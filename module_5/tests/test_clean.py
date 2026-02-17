@@ -174,6 +174,12 @@ def test_llm_post_rows_success(monkeypatch):
                           "llm-generated-university": "Uni"}]
             }).encode("utf-8")
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
     # Fake urlopen to return our FakeResponse
     def fake_urlopen(req, timeout=300):
         return FakeResponse()
@@ -199,6 +205,12 @@ def test_llm_post_rows_missing_rows_raises(monkeypatch):
         def read(self):
             return json.dumps({"error": "missing rows"}).encode("utf-8")
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
     def fake_urlopen(req, timeout=300):
         return FakeResponse()
 
@@ -214,7 +226,7 @@ def test_llm_post_rows_missing_rows_raises(monkeypatch):
 def test_llm_post_rows_all_retries_fail(monkeypatch):
     # Always fail so retries happen
     def fake_urlopen(req, timeout=300):
-        raise Exception("LLM down")
+        raise OSError("LLM down")
 
     monkeypatch.setattr(clean, "urlopen", fake_urlopen)
     monkeypatch.setattr(clean.time, "sleep", lambda x: None)

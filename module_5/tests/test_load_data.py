@@ -4,6 +4,9 @@
 import json
 import pytest
 from datetime import date
+
+import psycopg
+
 import load_data
 import builtins
 import io
@@ -101,7 +104,7 @@ def test_main_success(monkeypatch):
     monkeypatch.setattr(load_data, "get_connection", lambda: fake_conn)
 
     # Use monkeypatch to open the test JSON file.
-    monkeypatch.setattr(load_data, "json_file", "fake.json")
+    monkeypatch.setattr(load_data, "JSON_FILE", "fake.json")
 
     # Fake open() to return JSON and ensure the insert runs.
     def fake_open(*args, **kwargs):
@@ -172,7 +175,7 @@ def test_load_data_main_rollback(monkeypatch):
 
     class FakeCursor:
         def execute(self, *args, **kwargs):
-            raise Exception("db error")
+            raise psycopg.ProgrammingError("db error")
 
         def __enter__(self):
             return self

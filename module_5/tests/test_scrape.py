@@ -262,7 +262,7 @@ def test_scrape_data_detail_fetch_error_sets_none(monkeypatch):
 
         # The detail page should fail (simulate error)
         if "result/123" in url:
-            raise Exception("Simulated error")
+            raise OSError("Simulated error")
 
         return ""
 
@@ -300,6 +300,12 @@ def test_download_html_success(monkeypatch):
     class FakeResp:
         def read(self):
             return b"<html>ok</html>"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
 
     monkeypatch.setattr(scrape, "urlopen", lambda req, timeout=60: FakeResp())
     assert scrape.download_html("https://example.com") == "<html>ok</html>"
@@ -433,6 +439,12 @@ def test_scrape_main_block(monkeypatch, tmp_path):
         def read(self):
             return b"<html></html>"
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
     monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: FakeResp())
     monkeypatch.setattr(scrape.time, "sleep", lambda x: None)
     monkeypatch.chdir(tmp_path)
@@ -450,6 +462,12 @@ def test_scrape_main_loop_paths(monkeypatch, tmp_path):
     class FakeResp:
         def read(self):
             return b"<html></html>"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
 
     # Patch the global urlopen used by the __main__ module
     monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: FakeResp())
@@ -485,6 +503,12 @@ def test_scrape_main_loop_stop_now(monkeypatch, tmp_path):
             </table>
             """
 
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
     monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: FakeResp())
     monkeypatch.setattr(time, "sleep", lambda x: None)
 
@@ -505,7 +529,14 @@ def test_scrape_main_loop_error_path(monkeypatch, tmp_path):
     calls = {"n": 0}
     def fake_urlopen(req, timeout=60):
         class FakeResp:
-            def read(self): return b"<html></html>"
+            def read(self):
+                return b"<html></html>"
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
 
         if calls["n"] < 5:
             calls["n"] += 1
@@ -543,8 +574,17 @@ def test_scrape_main_loop_non_empty_then_empty(monkeypatch, tmp_path):
     page_calls = {"n": 0}
     def fake_urlopen(req, timeout=60):
         class FakeResp:
-            def __init__(self, text): self.text = text
-            def read(self): return self.text.encode("utf-8")
+            def __init__(self, text):
+                self.text = text
+
+            def read(self):
+                return self.text.encode("utf-8")
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
 
         url = req.full_url if hasattr(req, "full_url") else str(req)
 
@@ -594,7 +634,14 @@ def test_scrape_main_loop_error_path(monkeypatch, tmp_path):
     calls = {"n": 0}
     def fake_urlopen(req, timeout=60):
         class FakeResp:
-            def read(self): return b"<html></html>"
+            def read(self):
+                return b"<html></html>"
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
 
         if calls["n"] == 0:
             calls["n"] += 1

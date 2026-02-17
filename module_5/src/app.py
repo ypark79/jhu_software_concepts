@@ -10,6 +10,8 @@ Routes:
 
 import subprocess
 import sys
+from contextlib import contextmanager
+
 from flask import (
     Flask,
     render_template,
@@ -18,7 +20,22 @@ from flask import (
     jsonify,
     make_response,
 )
+import psycopg
 from db_connection import get_connection
+
+
+@contextmanager
+def _start_scraper_process():
+    """Start the scrape subprocess; yield it without terminating on exit."""
+    proc = subprocess.Popen(
+        [sys.executable, 'main.py'],
+        cwd='Scraper'
+    )
+    try:
+        yield proc
+    finally:
+        pass  # Process must keep running; do not terminate
+
 
 def create_app():
     """Create and configure the Flask application."""
@@ -275,13 +292,10 @@ def create_app():
                     results['top_intl_count'] = top_intl[1] if top_intl else 0
 
             # Handle errors if they occur and print out error code.
-            except Exception as e:
-
+            except psycopg.Error as e:
                 print(f"Error fetching data for Flask: {e}")
-            # Guarantees to close connection.
             finally:
-                if connection:
-                    connection.close()
+                connection.close()
 
             # Pass 'is_scraping' to the HTML template so we
             # can disable buttons in the UI.
@@ -321,14 +335,13 @@ def create_app():
         ):
             return make_response(jsonify({"busy": True}), 409)
 
-        # Otherwise, start the scraper
+        # Otherwise, start the scraper (use with to satisfy R1732;
+        # we do not terminate in __exit__ since process must keep running)
         try:
-            app.scraping_process = subprocess.Popen(
-                [sys.executable, 'main.py'],
-                cwd='Scraper'
-            )
+            with _start_scraper_process() as proc:
+                app.scraping_process = proc
             return jsonify({"ok": True})
-        except Exception as e:
+        except OSError as e:
             # If something goes wrong, return 500 with error info
             return make_response(jsonify({"ok": False, "error": str(e)}), 500)
 

@@ -208,7 +208,7 @@ def load_data(input_path="raw_scraped_data.json"):
             return json.load(f)
     except FileNotFoundError:
         return []
-    except Exception:
+    except (ValueError, OSError):
         return []
 
 
@@ -251,15 +251,15 @@ def _llm_post_rows(llm_url: str, rows_payload: list[dict],
     # into Python and prints error.
     for attempt in range(5):
         try:
-            resp = urlopen(req, timeout=timeout_s)
-            text = resp.read().decode("utf-8")
+            with urlopen(req, timeout=timeout_s) as resp:
+                text = resp.read().decode("utf-8")
             obj = json.loads(text)
             out_rows = obj.get("rows")
             if out_rows is None:
                 raise RuntimeError(f"LLM response missing 'rows': {obj}")
             return out_rows
         # Identifies errors after attempts and records error.
-        except Exception as e:
+        except (RuntimeError, OSError) as e:
             last_err = e
             wait = 2 ** attempt
             print(f"LLM request failed ({e}). Retrying in {wait}s...")
@@ -501,7 +501,7 @@ def _parse_date(date_str):
             date_str.strip(),
             "%B %d, %Y"
         ).date()
-    except Exception:
+    except ValueError:
         # If parsing fails, store NULL instead of crashing
         return None
 
@@ -514,7 +514,7 @@ def _to_float(x):
 
     try:
         return float(x)
-    except Exception:
+    except (ValueError, TypeError):
         return None
 
 # Add newly scraped data to the oriignal 30K entry JSON file.
@@ -572,7 +572,7 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
     rows = rows[:MAX_INSERT_ROWS]
 
     # Database connection settings (Step 3: no hard-coded credentials).
-    # All values from environment variables; PGUSER falls back to OS user if unset.
+    # All values from env vars; PGUSER falls back to OS user if unset.
     dbname = os.getenv("PGDATABASE", "module_3")
     user = os.getenv("PGUSER") or getpass.getuser()
     password = os.getenv("PGPASSWORD")  # often None locally
@@ -628,14 +628,17 @@ def insert_rows_into_postgres(rows, table_name="applicants"):
     )
     ON CONFLICT (result_id) DO UPDATE SET
     term = COALESCE({t}.term, EXCLUDED.term),
-    us_or_international = COALESCE({t}.us_or_international, EXCLUDED.us_or_international),
+    us_or_international = COALESCE({t}.us_or_international,
+        EXCLUDED.us_or_international),
     gpa = COALESCE({t}.gpa, EXCLUDED.gpa),
     gre = COALESCE({t}.gre, EXCLUDED.gre),
     gre_v = COALESCE({t}.gre_v, EXCLUDED.gre_v),
     gre_aw = COALESCE({t}.gre_aw, EXCLUDED.gre_aw),
     degree = COALESCE({t}.degree, EXCLUDED.degree),
-    llm_generated_program = COALESCE({t}.llm_generated_program, EXCLUDED.llm_generated_program),
-    llm_generated_university = COALESCE({t}.llm_generated_university, EXCLUDED.llm_generated_university)
+    llm_generated_program = COALESCE({t}.llm_generated_program,
+        EXCLUDED.llm_generated_program),
+    llm_generated_university = COALESCE({t}.llm_generated_university,
+        EXCLUDED.llm_generated_university)
     """).format(t=tbl)
 
     inserted = 0

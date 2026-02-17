@@ -3,11 +3,13 @@
 import json
 import re
 from datetime import datetime
+
+import psycopg
 from db_connection import get_connection
 
 
 # JSON file was put into a subfolder named Data for organization.
-json_file = "Data/llm_extend_applicant_data.json"
+JSON_FILE = "Data/llm_extend_applicant_data.json"
 
 # Infer the admission term from the date_added field.
 # GradCafe entries posted Oct–Feb typically correspond to Fall of the
@@ -115,7 +117,7 @@ def main():
             print("Table cleared. Starting fresh data load...")
 
             # Load data from llm_extend_applicant_data.json
-            with open(json_file, "r", encoding="utf-8") as f:
+            with open(JSON_FILE, "r", encoding="utf-8") as f:
 
                 data = json.load(f)
 
@@ -173,7 +175,7 @@ def main():
         connection.commit()
         print(f"Successfully loaded {inserted} rows into 'applicants'.")
 
-    except Exception as e:
+    except (ValueError, OSError, KeyError, psycopg.Error) as e:
         # If an error occurs (e.g., schema mismatch), rollback
         # the transaction.
         print(f"An error occurred during data load: {e}")

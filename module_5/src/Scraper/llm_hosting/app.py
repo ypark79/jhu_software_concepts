@@ -120,14 +120,13 @@ FEW_SHOTS: List[Tuple[Dict[str, str], Dict[str, str]]] = [
     ),
 ]
 
-_LLM: Llama | None = None
+_LLM_CACHE: List[Llama | None] = [None]
 
 
 def _load_llm() -> Llama:
     """Download (or reuse) the GGUF file and initialize llama.cpp."""
-    global _LLM
-    if _LLM is not None:
-        return _LLM
+    if _LLM_CACHE[0] is not None:
+        return _LLM_CACHE[0]
 
     model_path = hf_hub_download(
         repo_id=MODEL_REPO,
@@ -137,14 +136,14 @@ def _load_llm() -> Llama:
         force_filename=MODEL_FILE,
     )
 
-    _LLM = Llama(
+    _LLM_CACHE[0] = Llama(
         model_path=model_path,
         n_ctx=N_CTX,
         n_threads=N_THREADS,
         n_gpu_layers=N_GPU_LAYERS,
         verbose=False,
     )
-    return _LLM
+    return _LLM_CACHE[0]
 
 
 def _split_fallback(text: str) -> Tuple[str, str]:
@@ -244,11 +243,15 @@ def _build_messages(program_text: str) -> List[Dict[str, str]]:
     return messages
 
 
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None  # type: ignore
+
+
 def _call_llm_openai(program_text: str) -> Dict[str, str]:
     """Call OpenAI GPT-5.2-Codex and return standardized fields."""
-    try:
-        from openai import OpenAI
-    except ImportError:
+    if OpenAI is None:
         raise RuntimeError(
             "LLM_BACKEND=openai requires: pip install openai"
         ) from None
@@ -276,7 +279,7 @@ def _call_llm_openai(program_text: str) -> Dict[str, str]:
         obj = json.loads(match.group(0) if match else text)
         std_prog = str(obj.get("standardized_program", "")).strip()
         std_uni = str(obj.get("standardized_university", "")).strip()
-    except Exception:
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
         std_prog, std_uni = _split_fallback(program_text)
     std_prog = _post_normalize_program(std_prog)
     std_uni = _post_normalize_university(std_uni)
@@ -302,7 +305,7 @@ def _call_llm_local(program_text: str) -> Dict[str, str]:
         obj = json.loads(match.group(0) if match else text)
         std_prog = str(obj.get("standardized_program", "")).strip()
         std_uni = str(obj.get("standardized_university", "")).strip()
-    except Exception:
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
         std_prog, std_uni = _split_fallback(program_text)
     std_prog = _post_normalize_program(std_prog)
     std_uni = _post_normalize_university(std_uni)
@@ -313,7 +316,7 @@ def _call_llm_local(program_text: str) -> Dict[str, str]:
 
 
 def _call_llm(program_text: str) -> Dict[str, str]:
-    """Query the configured LLM (local or OpenAI GPT-5.2-Codex) and return standardized fields."""
+    """Query the configured LLM (local or OpenAI) and return fields."""
     if LLM_BACKEND == "openai":
         return _call_llm_openai(program_text)
     return _call_llm_local(program_text)
@@ -351,6 +354,19 @@ def standardize() -> Any:
     return jsonify({"rows": out})
 
 
+def _cli_process_rows(rows: List[Dict[str, Any]],
+                      sink: Any) -> None:
+    """Process rows and write to sink."""
+    for row in rows:
+        program_text = (row or {}).get("program") or ""
+        result = _call_llm(program_text)
+        row["llm-generated-program"] = result["standardized_program"]
+        row["llm-generated-university"] = result["standardized_university"]
+        json.dump(row, sink, ensure_ascii=False)
+        sink.write("\n")
+        sink.flush()
+
+
 def _cli_process_file(
     in_path: str,
     out_path: str | None,
@@ -361,27 +377,13 @@ def _cli_process_file(
     with open(in_path, "r", encoding="utf-8") as f:
         rows = _normalize_input(json.load(f))
 
-    sink = sys.stdout if to_stdout else None
-    if not to_stdout:
+    if to_stdout:
+        _cli_process_rows(rows, sys.stdout)
+    else:
         out_path = out_path or (in_path + ".jsonl")
         mode = "a" if append else "w"
-        sink = open(out_path, mode, encoding="utf-8")
-
-    assert sink is not None  # for type-checkers
-
-    try:
-        for row in rows:
-            program_text = (row or {}).get("program") or ""
-            result = _call_llm(program_text)
-            row["llm-generated-program"] = result["standardized_program"]
-            row["llm-generated-university"] = result["standardized_university"]
-
-            json.dump(row, sink, ensure_ascii=False)
-            sink.write("\n")
-            sink.flush()
-    finally:
-        if sink is not sys.stdout:
-            sink.close()
+        with open(out_path, mode, encoding="utf-8") as sink:
+            _cli_process_rows(rows, sink)
 
 
 if __name__ == "__main__":
