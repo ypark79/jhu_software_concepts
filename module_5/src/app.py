@@ -8,6 +8,7 @@ Routes:
     /update-analysis Allow UI to refresh analysis when idle.
 """
 
+import os
 import subprocess
 import sys
 from contextlib import contextmanager
@@ -366,4 +367,5 @@ def create_app():
 
 if __name__ == '__main__':
     main_app = create_app()
-    main_app.run(host='0.0.0.0', port=8080, debug=True)
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+    main_app.run(host='0.0.0.0', port=8080, debug=debug)

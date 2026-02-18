@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Flask + LLM standardizer (local TinyLlama or OpenAI GPT-5.2-Codex).
-
-Includes incremental JSONL CLI output.
-"""
+"""Flask + tiny local LLM standardizer with incremental JSONL CLI output."""
 
 from __future__ import annotations
 
@@ -19,13 +16,7 @@ from llama_cpp import Llama  # CPU-only by default if N_GPU_LAYERS=0
 
 app = Flask(__name__)
 
-# ---------------- Backend selection ----------------
-# Set LLM_BACKEND=openai to use OpenAI GPT-5.2-Codex; requires OPENAI_API_KEY.
-# Default is "local" (TinyLlama via llama-cpp).
-LLM_BACKEND = os.getenv("LLM_BACKEND", "local").lower().strip()
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.2-codex")
-
-# ---------------- Model config (local backend) ----------------
+# ---------------- Model config ----------------
 MODEL_REPO = os.getenv(
     "MODEL_REPO",
     "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
@@ -42,8 +33,7 @@ N_GPU_LAYERS = int(os.getenv("N_GPU_LAYERS", "0"))  # 0 → CPU-only
 CANON_UNIS_PATH = os.getenv("CANON_UNIS_PATH", "canon_universities.txt")
 CANON_PROGS_PATH = os.getenv("CANON_PROGS_PATH", "canon_programs.txt")
 
-# Precompiled, non-greedy JSON object matcher to tolerate
-# chatter around JSON
+# Precompiled, non-greedy JSON object matcher to tolerate chatter around JSON
 JSON_OBJ_RE = re.compile(r"\{.*?\}", re.DOTALL)
 
 # ---------------- Canonical lists + abbrev maps ----------------
@@ -79,17 +69,17 @@ COMMON_PROG_FIXES: Dict[str, str] = {
 
 # ---------------- Few-shot prompt ----------------
 SYSTEM_PROMPT = (
-    "You are a data cleaning assistant. Standardize degree program and "
-    "university names.\n\n"
+    "You are a data cleaning assistant. Standardize degree program and university "
+    "names.\n\n"
     "Rules:\n"
-    "- Input provides a single string under key `program` that may contain "
-    "both program and university.\n"
+    "- Input provides a single string under key `program` that may contain both "
+    "program and university.\n"
     "- Split into (program name, university name).\n"
     "- Trim extra spaces and commas.\n"
     '- Expand obvious abbreviations (e.g., "McG" -> "McGill University", '
     '"UBC" -> "University of British Columbia").\n'
-    "- Use Title Case for program; use official capitalization for "
-    "university names (e.g., \"University of X\").\n"
+    "- Use Title Case for program; use official capitalization for university "
+    "names (e.g., \"University of X\").\n"
     '- Ensure correct spelling (e.g., "McGill", not "McGiill").\n'
     '- If university cannot be inferred, return "Unknown".\n\n'
     "Return JSON ONLY with keys:\n"
@@ -120,13 +110,14 @@ FEW_SHOTS: List[Tuple[Dict[str, str], Dict[str, str]]] = [
     ),
 ]
 
-_LLM_CACHE: List[Llama | None] = [None]
+_LLM: Llama | None = None
 
 
 def _load_llm() -> Llama:
     """Download (or reuse) the GGUF file and initialize llama.cpp."""
-    if _LLM_CACHE[0] is not None:
-        return _LLM_CACHE[0]
+    global _LLM
+    if _LLM is not None:
+        return _LLM
 
     model_path = hf_hub_download(
         repo_id=MODEL_REPO,
@@ -136,14 +127,14 @@ def _load_llm() -> Llama:
         force_filename=MODEL_FILE,
     )
 
-    _LLM_CACHE[0] = Llama(
+    _LLM = Llama(
         model_path=model_path,
         n_ctx=N_CTX,
         n_threads=N_THREADS,
         n_gpu_layers=N_GPU_LAYERS,
         verbose=False,
     )
-    return _LLM_CACHE[0]
+    return _LLM
 
 
 def _split_fallback(text: str) -> Tuple[str, str]:
@@ -171,12 +162,8 @@ def _split_fallback(text: str) -> Tuple[str, str]:
     return prog, uni
 
 
-def _best_match(
-    name: str,
-    candidates: List[str],
-    cutoff: float = 0.86
-) -> str | None:
-    """Fuzzy match via difflib (lightweight, Replit friendly)."""
+def _best_match(name: str, candidates: List[str], cutoff: float = 0.86) -> str | None:
+    """Fuzzy match via difflib (lightweight, Replit-friendly)."""
     if not name or not candidates:
         return None
     matches = difflib.get_close_matches(name, candidates, n=1, cutoff=cutoff)
@@ -195,7 +182,7 @@ def _post_normalize_program(prog: str) -> str:
 
 
 def _post_normalize_university(uni: str) -> str:
-    """Expand abbreviations, fix spelling, and apply canonical map."""
+    """Expand abbreviations, apply common fixes, capitalization, and canonical map."""
     u = (uni or "").strip()
 
     # Abbreviations
@@ -218,8 +205,10 @@ def _post_normalize_university(uni: str) -> str:
     return match or u or "Unknown"
 
 
-def _build_messages(program_text: str) -> List[Dict[str, str]]:
-    """Build chat messages for either local or OpenAI backend."""
+def _call_llm(program_text: str) -> Dict[str, str]:
+    """Query the tiny LLM and return standardized fields."""
+    llm = _load_llm()
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for x_in, x_out in FEW_SHOTS:
         messages.append(
@@ -234,92 +223,32 @@ def _build_messages(program_text: str) -> List[Dict[str, str]]:
     messages.append(
         {
             "role": "user",
-            "content": json.dumps(
-                {"program": program_text},
-                ensure_ascii=False
-            ),
+            "content": json.dumps({"program": program_text}, ensure_ascii=False),
         }
     )
-    return messages
 
-
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None  # type: ignore
-
-
-def _call_llm_openai(program_text: str) -> Dict[str, str]:
-    """Call OpenAI GPT-5.2-Codex and return standardized fields."""
-    if OpenAI is None:
-        raise RuntimeError(
-            "LLM_BACKEND=openai requires: pip install openai"
-        ) from None
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "LLM_BACKEND=openai requires OPENAI_API_KEY to be set"
-        )
-    client = OpenAI(api_key=api_key)
-    messages = _build_messages(program_text)
-    # OpenAI API expects "content" for user/assistant; system is supported
-    openai_messages = [
-        {"role": m["role"], "content": m["content"]}
-        for m in messages
-    ]
-    resp = client.chat.completions.create(
-        model=OPENAI_MODEL,
-        messages=openai_messages,
-        temperature=0.0,
-        max_tokens=128,
-    )
-    text = (resp.choices[0].message.content or "").strip()
-    try:
-        match = JSON_OBJ_RE.search(text)
-        obj = json.loads(match.group(0) if match else text)
-        std_prog = str(obj.get("standardized_program", "")).strip()
-        std_uni = str(obj.get("standardized_university", "")).strip()
-    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
-        std_prog, std_uni = _split_fallback(program_text)
-    std_prog = _post_normalize_program(std_prog)
-    std_uni = _post_normalize_university(std_uni)
-    return {
-        "standardized_program": std_prog,
-        "standardized_university": std_uni,
-    }
-
-
-def _call_llm_local(program_text: str) -> Dict[str, str]:
-    """Query the local TinyLlama and return standardized fields."""
-    llm = _load_llm()
-    messages = _build_messages(program_text)
     out = llm.create_chat_completion(
         messages=messages,
         temperature=0.0,
         max_tokens=128,
         top_p=1.0,
     )
+
     text = (out["choices"][0]["message"]["content"] or "").strip()
     try:
         match = JSON_OBJ_RE.search(text)
         obj = json.loads(match.group(0) if match else text)
         std_prog = str(obj.get("standardized_program", "")).strip()
         std_uni = str(obj.get("standardized_university", "")).strip()
-    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+    except Exception:
         std_prog, std_uni = _split_fallback(program_text)
+
     std_prog = _post_normalize_program(std_prog)
     std_uni = _post_normalize_university(std_uni)
     return {
         "standardized_program": std_prog,
         "standardized_university": std_uni,
     }
-
-
-def _call_llm(program_text: str) -> Dict[str, str]:
-    """Query the configured LLM (local or OpenAI) and return fields."""
-    if LLM_BACKEND == "openai":
-        return _call_llm_openai(program_text)
-    return _call_llm_local(program_text)
 
 
 def _normalize_input(payload: Any) -> List[Dict[str, Any]]:
@@ -354,28 +283,6 @@ def standardize() -> Any:
     return jsonify({"rows": out})
 
 
-def _cli_process_rows(rows: List[Dict[str, Any]],
-                      sink: Any) -> None:
-    """Process rows and write to sink."""
-    for row in rows:
-        program_text = (row or {}).get("program") or ""
-        result = _call_llm(program_text)
-        row["llm-generated-program"] = result["standardized_program"]
-        row["llm-generated-university"] = result["standardized_university"]
-        json.dump(row, sink, ensure_ascii=False)
-        sink.write("\n")
-        sink.flush()
-
-
-def _resolve_path_under_base(path: str, base: str) -> str:
-    """Resolve path to a real path and ensure it is under base (no path traversal)."""
-    base_real = os.path.realpath(base)
-    path_real = os.path.realpath(os.path.abspath(path))
-    if os.path.commonpath([path_real, base_real]) != base_real:
-        raise ValueError(f"Path escapes allowed directory: {path!r}")
-    return path_real
-
-
 def _cli_process_file(
     in_path: str,
     out_path: str | None,
@@ -383,19 +290,30 @@ def _cli_process_file(
     to_stdout: bool,
 ) -> None:
     """Process a JSON file and write JSONL incrementally."""
-    base_dir = os.getcwd()
-    in_path_safe = _resolve_path_under_base(in_path, base_dir)
-    with open(in_path_safe, "r", encoding="utf-8") as f:
+    with open(in_path, "r", encoding="utf-8") as f:
         rows = _normalize_input(json.load(f))
 
-    if to_stdout:
-        _cli_process_rows(rows, sys.stdout)
-    else:
+    sink = sys.stdout if to_stdout else None
+    if not to_stdout:
         out_path = out_path or (in_path + ".jsonl")
-        out_path_safe = _resolve_path_under_base(out_path, base_dir)
         mode = "a" if append else "w"
-        with open(out_path_safe, mode, encoding="utf-8") as sink:
-            _cli_process_rows(rows, sink)
+        sink = open(out_path, mode, encoding="utf-8")
+
+    assert sink is not None  # for type-checkers
+
+    try:
+        for row in rows:
+            program_text = (row or {}).get("program") or ""
+            result = _call_llm(program_text)
+            row["llm-generated-program"] = result["standardized_program"]
+            row["llm-generated-university"] = result["standardized_university"]
+
+            json.dump(row, sink, ensure_ascii=False)
+            sink.write("\n")
+            sink.flush()
+    finally:
+        if sink is not sys.stdout:
+            sink.close()
 
 
 if __name__ == "__main__":
