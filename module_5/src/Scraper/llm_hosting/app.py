@@ -368,7 +368,7 @@ def _cli_process_rows(rows: List[Dict[str, Any]],
 
 
 def _resolve_path_under_base(path: str, base: str) -> str:
-    """Resolve path to a real path and ensure it is under base (no path traversal)."""
+    """Resolve to real path and ensure it is under base (no path traversal)."""
     base_real = os.path.realpath(base)
     path_real = os.path.realpath(os.path.abspath(path))
     if os.path.commonpath([path_real, base_real]) != base_real:
