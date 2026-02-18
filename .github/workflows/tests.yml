@@ -86,6 +86,34 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r module_5/requirements.txt
 
+      - name: Install Graphviz (for pydeps)
+        run: sudo apt-get update -q && sudo apt-get install -y graphviz
+
+      - name: Run Pylint (fail if score below 10)
+        working-directory: module_5
+        run: |
+          PYLINT_HOME=.pylint_cache PYTHONPATH=src pylint src --fail-under=10
+
+      - name: Generate dependency.svg (pydeps)
+        working-directory: module_5
+        run: |
+          PYTHONPATH=src pydeps src/app.py --noshow -T svg -o dependency.svg
+          test -f dependency.svg || (echo "dependency.svg was not generated" && exit 1)
+
+      - name: Set up Node (for Snyk CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Snyk CLI and run snyk test
+        working-directory: module_5
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          npm install -g snyk
+          snyk test
+        continue-on-error: true
+
       - name: Run module_5 tests
         working-directory: module_5
         env:
