@@ -35,7 +35,7 @@ def _start_scraper_process():
     try:
         yield proc
     finally:
-        pass  # Process must keep running; do not terminate
+        pass  # Process must keep running; do not terminate.
 
 
 def create_app():
