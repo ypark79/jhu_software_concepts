@@ -123,15 +123,13 @@
         <header>
             <!-- SECOND BUTTON: Update Analysis (Top Right) -->
             <div class="header-actions">
-                <form action="{{ url_for('update_analysis') }}" method="POST">
-                    <!-- The button is disabled if 'is_scraping' is True
-                    (sent from app.py) -->
-                    <button type="submit" class="btn btn-update"
-                            {% if is_scraping %}disabled{% endif %}>
-                        Update Analysis</button>
-                    <span class="info-text">Refreshes the page to show
-                        latest results. Disabled if data pull is active.</span>
-                </form>
+                <!-- Button triggers fetch + reload so we never navigate to JSON response -->
+                <button type="button" class="btn btn-update" id="update-analysis-btn"
+                        {% if is_scraping %}disabled{% endif %}
+                        onclick="updateAnalysisThenReload();">
+                    Update Analysis</button>
+                <span class="info-text">Refreshes the page to show
+                    latest results. Disabled if data pull is active.</span>
             </div>
             <p class="project-title">Grad School Cafe Data Analysis</p>
             <h1>Analysis</h1>
@@ -277,6 +275,26 @@ is running and enables them when it is complete by calling on the
 app.route for scrape-status. Also updates the
 button text dynamically to inform the user of what is going on. -->
 <script>
+  // Prevent Pull Data form from navigating away; POST via fetch so we stay on page
+  // and the polling below can disable/enable buttons based on scrape status.
+  (function () {
+    const form = document.querySelector('.btn-pull') && document.querySelector('.btn-pull').closest('form');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        fetch('{{ url_for("pull_data") }}', { method: 'POST' })
+          .then(function () { refreshScrapeStatus(); })
+          .catch(function () {});
+      });
+    }
+  })();
+
+  function updateAnalysisThenReload() {
+    fetch('{{ url_for("update_analysis") }}', { method: 'POST' })
+      .then(function () { window.location.href = '{{ url_for("index") }}'; })
+      .catch(function () {});
+  }
+
   async function refreshScrapeStatus() {
     try {
       const res = await fetch("/scrape-status");

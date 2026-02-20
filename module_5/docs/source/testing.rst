@@ -44,9 +44,11 @@ This keeps the UI safe and prevents duplicate work.
 Selectors and fixtures
 ----------------------
 Selectors:
+
 - We use HTML elements and attributes (like button text or form actions)
   to find the correct UI elements in tests.
 
 Fixtures:
+
 - We use small fake datasets (rows) and helper functions so tests run fast
   and do not touch the real network or database.

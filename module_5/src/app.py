@@ -25,12 +25,28 @@ import psycopg
 from db_connection import get_connection
 
 
+def _module5_python():
+    """Prefer module_5's venv Python so scrape/clean use module_5 deps, not another module's."""
+    src_dir = os.path.dirname(os.path.abspath(__file__))
+    module5_root = os.path.dirname(src_dir)
+    subdir = 'Scripts' if os.name == 'nt' else 'bin'
+    for venv_name in ('.venv', '.venv.test'):
+        candidate = os.path.join(module5_root, venv_name, subdir, 'python.exe' if os.name == 'nt' else 'python')
+        if os.path.isfile(candidate):
+            return candidate
+    return sys.executable
+
+
 @contextmanager
 def _start_scraper_process():
     """Start the scrape subprocess; yield it without terminating on exit."""
+    # Scraper dir is next to this file (src/Scraper); works regardless of CWD
+    _src_dir = os.path.dirname(os.path.abspath(__file__))
+    _scraper_dir = os.path.join(_src_dir, 'Scraper')
+    python_exe = _module5_python()
     proc = subprocess.Popen(
-        [sys.executable, 'main.py'],
-        cwd='Scraper'
+        [python_exe, 'main.py'],
+        cwd=_scraper_dir
     )
     try:
         yield proc
@@ -351,7 +367,7 @@ def create_app():
     # New Route: Handles the "Update Analysis" button click.
     @app.route('/update-analysis', methods=['POST'])
     def update_analysis():
-        """Return OK if not busy; block when a scrape is active."""
+        """Redirect to analysis page when not busy; return 409 when scrape is active."""
 
         # If a scrape is running, block update and return 409 Busy
         if (
@@ -360,8 +376,8 @@ def create_app():
         ):
             return make_response(jsonify({"busy": True}), 409)
 
-        # Otherwise, allow update
-        return jsonify({"ok": True})
+        # Otherwise redirect to analysis page so user always sees the page, not JSON
+        return redirect(url_for('index'))
 
     return app
 
