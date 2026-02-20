@@ -3,7 +3,7 @@ Name: Youngmin Park (ypark79)
 Module Info: Module 5 Assignment: Software Assurance + Secure SQL (SQLi Defense) Assignment. Due on 23 FEB 2026 at 11:59 EST. 
 
 SSH URL to GitHub Repo: git@github.com:ypark79/jhu_software_concepts.git
-Link to Module 4 Folder in GitHub Repo: https://github.com/ypark79/jhu_software_concepts/tree/main/module_4
+Link to Module 5 Folder in GitHub Repo: https://github.com/ypark79/jhu_software_concepts/tree/main/module_5
 Link to Read the Docs HTML: https://jhu-software-concepts-ypark79.readthedocs.io/en/latest/
 
 
