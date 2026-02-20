@@ -1,4 +1,5 @@
 # Test buttons and busy state behavior.
+import os
 import sys
 import pytest
 from app import create_app
@@ -115,6 +116,18 @@ def test_busy_for_pull_data(monkeypatch):
     # show no data was pulled while running.
     assert response.status_code == 409
     assert response.get_json() == {"busy": True}
+
+
+@pytest.mark.buttons
+def test_module5_python_returns_venv_when_found(monkeypatch):
+    """When .venv exists, _module5_python returns its python path (covers line 37 on CI)."""
+    src_dir = os.path.dirname(os.path.abspath(app.__file__))
+    module5_root = os.path.dirname(src_dir)
+    subdir = 'Scripts' if os.name == 'nt' else 'bin'
+    exe = 'python.exe' if os.name == 'nt' else 'python'
+    expected = os.path.join(module5_root, '.venv', subdir, exe)
+    monkeypatch.setattr("app.os.path.isfile", lambda p: p == expected)
+    assert app._module5_python() == expected
 
 
 @pytest.mark.buttons
