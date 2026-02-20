@@ -16,25 +16,29 @@ What the app does
 
 Project structure
 -----------------
-- ``module_4/src``: application code
-- ``module_4/tests``: pytest test suite
-- ``module_4/docs``: Sphinx documentation
+- ``module_5/src``: application code
+- ``module_5/tests``: pytest test suite
+- ``module_5/docs``: Sphinx documentation
 
 Setup (local)
 -------------
 1. Create and activate a virtual environment:
 
-   ``python -m venv module_4/.venv``
+   ``python -m venv module_5/.venv``
 
-   ``source module_4/.venv/bin/activate``
+   ``source module_5/.venv/bin/activate``
 
-2. Install dependencies:
+2. Install dependencies (from the ``module_5`` folder):
 
-   ``pip install flask psycopg beautifulsoup4 pytest pytest-cov``
+   ``pip install -r requirements.txt``
+
+   Then install the project as an editable package:
+
+   ``pip install -e .``
 
 3. Start PostgreSQL locally and create a database (example):
 
-   - Database name: ``module_4_db_test``
+   - Database name: ``module_5_db_test``
 
 Environment variables
 ---------------------
@@ -44,13 +48,13 @@ These are used to connect to PostgreSQL:
 - ``PGPORT`` (example: ``5432``)
 - ``PGUSER`` (example: your local DB username)
 - ``PGPASSWORD`` (example: your local DB password)
-- ``PGDATABASE`` (example: ``module_4_db_test``)
+- ``PGDATABASE`` (example: ``module_5_db_test``)
 
 Run the app
 -----------
-From the repo root:
+From the ``module_5`` folder with the venv activated:
 
-``PYTHONPATH=module_4/src python module_4/src/app.py``
+``python -m app``
 
 Then open:
 
@@ -58,6 +62,6 @@ Then open:
 
 Run the tests
 -------------
-From the repo root:
+From the ``module_5`` folder with the venv activated:
 
-``PYTHONPATH=module_4/src pytest -c module_4/pytest.ini``
+``pytest``

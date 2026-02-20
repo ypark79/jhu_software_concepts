@@ -6,7 +6,7 @@ This system has three main parts: Web, ETL, and Database.
 
 Web (Flask)
 -----------
-- File: ``module_4/src/app.py``
+- File: ``module_5/src/app.py``
 - Provides the Analysis web page at ``/analysis``
 - Provides button routes:
   - ``/pull-data`` (start scraping)
@@ -15,21 +15,21 @@ Web (Flask)
 
 ETL (Scrape + Clean + Load)
 ---------------------------
-- File: ``module_4/src/Scraper/main.py``
+- File: ``module_5/src/Scraper/main.py``
   - Orchestrates the pipeline
-- File: ``module_4/src/Scraper/scrape.py``
+- File: ``module_5/src/Scraper/scrape.py``
   - Downloads and parses Grad Cafe HTML
-- File: ``module_4/src/Scraper/clean.py``
+- File: ``module_5/src/Scraper/clean.py``
   - Cleans raw rows and inserts into PostgreSQL
-- File: ``module_4/src/load_data.py``
+- File: ``module_5/src/load_data.py``
   - Loads cleaned JSON into PostgreSQL (used for batch loading)
 
 Database (PostgreSQL)
 ---------------------
 - The database stores cleaned applicant rows
 - Queries run in:
-  - ``module_4/src/query_data.py`` (console outputs)
-  - ``module_4/src/app.py`` (analysis page)
+  - ``module_5/src/query_data.py`` (console outputs)
+  - ``module_5/src/app.py`` (analysis page)
 
 Data flow (high level)
 ----------------------

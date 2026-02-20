@@ -3,13 +3,13 @@ Testing Guide
 This page explains pytest markers, selectors, and how fixtures/monkeypatch are used.
 
 The tests are written with **pytest** and use **100% coverage** for
-``module_4/src``.
+``module_5/src``.
 
 How to run all tests
 --------------------
 From the repo root:
 
-``PYTHONPATH=module_4/src pytest -c module_4/pytest.ini``
+``PYTHONPATH=module_5/src pytest -c module_5/pytest.ini``
 
 Markers used
 ------------
