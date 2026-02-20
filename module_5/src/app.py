@@ -26,12 +26,13 @@ from db_connection import get_connection
 
 
 def _module5_python():
-    """Prefer module_5's venv Python so scrape/clean use module_5 deps, not another module's."""
+    """Prefer module_5's venv Python so scrape/clean use module_5 deps."""
     src_dir = os.path.dirname(os.path.abspath(__file__))
     module5_root = os.path.dirname(src_dir)
     subdir = 'Scripts' if os.name == 'nt' else 'bin'
+    exe = 'python.exe' if os.name == 'nt' else 'python'
     for venv_name in ('.venv', '.venv.test'):
-        candidate = os.path.join(module5_root, venv_name, subdir, 'python.exe' if os.name == 'nt' else 'python')
+        candidate = os.path.join(module5_root, venv_name, subdir, exe)
         if os.path.isfile(candidate):
             return candidate
     return sys.executable
@@ -367,16 +368,14 @@ def create_app():
     # New Route: Handles the "Update Analysis" button click.
     @app.route('/update-analysis', methods=['POST'])
     def update_analysis():
-        """Redirect to analysis page when not busy; return 409 when scrape is active."""
-
+        """Redirect to analysis when idle; return 409 when scrape is active."""
         # If a scrape is running, block update and return 409 Busy
         if (
             app.scraping_process is not None
             and app.scraping_process.poll() is None
         ):
             return make_response(jsonify({"busy": True}), 409)
-
-        # Otherwise redirect to analysis page so user always sees the page, not JSON
+        # Otherwise redirect so user sees the analysis page, not JSON
         return redirect(url_for('index'))
 
     return app

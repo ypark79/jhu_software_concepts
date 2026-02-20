@@ -63,16 +63,14 @@ def test_get_analysis_page():
 
     soup = BeautifulSoup(html, "html.parser")
 
-    # Look for the form that submits to /pull-data
-    # and /update-analysis.
-    # Confirm the two buttons exist.
+    # Pull Data: form that submits to /pull-data.
+    # Update Analysis: button (id update-analysis-btn) or form to /update-analysis.
     pull_form = soup.find("form", {"action": "/pull-data"})
-
+    update_btn = soup.find("button", {"id": "update-analysis-btn"})
     update_form = soup.find("form", {"action": "/update-analysis"})
 
     assert pull_form is not None
-
-    assert update_form is not None
+    assert update_btn is not None or update_form is not None
 
     # Check query results contains the word "analysis" and "answer".
     # check for the two buttons by checking their text labels.

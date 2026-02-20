@@ -124,9 +124,10 @@ def test_end_to_end_pull_update_render(monkeypatch):
         count = cur.fetchone()[0]
     assert count == 2
 
-    # Update analysis (should succeed when not busy)
+    # Update analysis (redirects to analysis page when not busy)
     response = client.post("/update-analysis")
-    assert response.status_code == 200
+    assert response.status_code == 302
+    assert response.headers.get("Location", "").endswith("/analysis")
 
     # Render analysis page
     response = client.get("/analysis")

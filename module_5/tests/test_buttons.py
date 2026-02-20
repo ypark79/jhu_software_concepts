@@ -1,6 +1,8 @@
 # Test buttons and busy state behavior.
+import sys
 import pytest
 from app import create_app
+import app
 
 
 # Create a fake process object to simulate if the
@@ -66,10 +68,9 @@ def test_update_analysis_returns_ok_when_not_busy():
 
     response = client.post("/update-analysis")
 
-    # Asserts that the updated route returns code 200 and the
-    # JSON response is {"ok": True}.
-    assert response.status_code == 200
-    assert response.get_json() == {"ok": True}
+    # Route redirects to analysis page when not busy (no JSON response).
+    assert response.status_code == 302
+    assert response.headers.get("Location", "").endswith("/analysis")
 
 
 @pytest.mark.buttons
@@ -114,3 +115,10 @@ def test_busy_for_pull_data(monkeypatch):
     # show no data was pulled while running.
     assert response.status_code == 409
     assert response.get_json() == {"busy": True}
+
+
+@pytest.mark.buttons
+def test_module5_python_fallback_when_no_venv(monkeypatch):
+    """When no .venv/.venv.test exists, _module5_python returns sys.executable."""
+    monkeypatch.setattr("app.os.path.isfile", lambda _: False)
+    assert app._module5_python() == sys.executable
